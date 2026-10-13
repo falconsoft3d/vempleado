@@ -9,23 +9,43 @@ import { requireEmployee } from "@/lib/session";
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TREEMAP_LABELED = 5;
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
+type Params = { from?: string; to?: string; emp?: string | string[] };
+
+/** Query string del dashboard; sin empleados = todos. */
+function dashboardHref(from: string, to: string, employeeIds: number[]) {
+  const query = new URLSearchParams({ from, to });
+  for (const id of employeeIds) query.append("emp", String(id));
+  return `/dashboard?${query}`;
+}
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<Params> }) {
   const { session } = await requireEmployee();
   const params = await searchParams;
   const ranges = presets();
   const yearRange = ranges[ranges.length - 1];
   const from = params.from && ISO_DATE.test(params.from) ? params.from : yearRange.from;
   const to = params.to && ISO_DATE.test(params.to) ? params.to : yearRange.to;
+  const requestedIds = [params.emp ?? []].flat().map(Number).filter((id) => Number.isInteger(id) && id > 0);
 
   let data: DashboardData | null = null;
   let error: string | null = null;
   try {
-    data = await getDashboard(session.url, session.token, from, to);
+    data = await getDashboard(session.url, session.token, from, to, requestedIds);
   } catch (e) {
     if (!(e instanceof OdooError)) throw e;
     error = e.message;
   }
 
+  const employees = data?.employees ?? [];
+  const selectedIds = data?.employee_ids ?? [];
+  const selectedNames = employees.filter((employee) => selectedIds.includes(employee.id)).map((employee) => employee.name);
+  const scope = !selectedIds.length
+    ? employees.length > 1
+      ? "todos los empleados"
+      : employees[0]?.name ?? ""
+    : selectedNames.length <= 3
+      ? selectedNames.join(", ")
+      : `${selectedNames.length} empleados`;
   const projects = data?.projects ?? [];
   const total = data?.total_hours ?? 0;
   const leader = projects[0];
@@ -38,7 +58,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <header className="page-header">
         <h1>Dashboard</h1>
         <p className="muted">
-          Horas imputadas a obras por ti y tus grupos · {formatDate(from)} – {formatDate(to)}
+          Horas imputadas a obras · {scope} · {formatDate(from)} – {formatDate(to)}
         </p>
       </header>
 
@@ -52,6 +72,30 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             Hasta
             <input type="date" name="to" defaultValue={to} required />
           </label>
+          {employees.length > 1 && (
+            <details className="employee-filter">
+              <summary>
+                <span className="filter-caption">Empleados</span>
+                <span className="filter-value">
+                  {selectedIds.length ? `${selectedIds.length} de ${employees.length}` : "Todos"}
+                </span>
+              </summary>
+              <div className="employee-menu">
+                <p className="muted small">Marca uno o varios. Sin marcar = todos.</p>
+                {employees.map((employee) => (
+                  <label key={employee.id}>
+                    <input type="checkbox" name="emp" value={employee.id} defaultChecked={selectedIds.includes(employee.id)} />
+                    {employee.name}
+                  </label>
+                ))}
+                {selectedIds.length > 0 && (
+                  <Link href={dashboardHref(from, to, [])} className="small">
+                    Ver todos los empleados
+                  </Link>
+                )}
+              </div>
+            </details>
+          )}
           <button type="submit" className="btn btn-secondary">
             Aplicar
           </button>
@@ -60,7 +104,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {ranges.map((range) => (
             <Link
               key={range.label}
-              href={`/dashboard?from=${range.from}&to=${range.to}`}
+              href={dashboardHref(range.from, range.to, selectedIds)}
               className={range.from === from && range.to === to ? "preset active" : "preset"}
             >
               {range.label}

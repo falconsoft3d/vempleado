@@ -128,8 +128,20 @@ export type DashboardProject = {
   client: string | null;
   hours: number;
 };
-export type DashboardData = { date_from: string; date_to: string; total_hours: number; projects: DashboardProject[] };
+export type DashboardData = {
+  date_from: string;
+  date_to: string;
+  total_hours: number;
+  projects: DashboardProject[];
+  employees: Named[];
+  employee_ids: number[];
+};
 
-export function getDashboard(baseUrl: string, token: string, dateFrom: string, dateTo: string) {
-  return call<DashboardData>(baseUrl, "/bim/portal/dashboard", { token, date_from: dateFrom, date_to: dateTo });
+export function getDashboard(baseUrl: string, token: string, dateFrom: string, dateTo: string, employeeIds: number[]) {
+  return call<DashboardData>(baseUrl, "/bim/portal/dashboard", {
+    token,
+    date_from: dateFrom,
+    date_to: dateTo,
+    employee_ids: employeeIds,
+  });
 }
