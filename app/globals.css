@@ -241,3 +241,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .grid-table thead .header-select { font-weight: 600; color: var(--text); border-color: var(--primary); }
+
+/* Celda con horas cargadas */
+.grid-table td.filled { background: #fff3bf; }
+.grid-table td.filled input[type="number"] { background: #fff3bf; border-color: #e0b400; font-weight: 600; }

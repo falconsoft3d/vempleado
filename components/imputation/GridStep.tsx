@@ -170,7 +170,7 @@ export default function GridStep({ options, grid, onBack }: Props) {
                       </select>
                     </td>
                     {columns.map((type) => (
-                      <td key={type.id} className="num">
+                      <td key={type.id} className={Number(row.hours[type.id]) > 0 ? "num filled" : "num"}>
                         {type.input === "check" ? (
                           <input
                             type="checkbox"
