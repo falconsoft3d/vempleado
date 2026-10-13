@@ -74,3 +74,46 @@ export function changePassword(baseUrl: string, token: string, oldPassword: stri
     new_password: newPassword,
   });
 }
+
+// ------------------------------------------------------- Imputación de horas
+
+export type HourType = { id: number; name: string; input: "hours" | "check"; default_qty: number };
+export type Named = { id: number; name: string };
+export type ImputationOptions = {
+  me: Named;
+  subgroups: (Named & { members: Named[] })[];
+  projects: Named[];
+  hour_types: HourType[];
+};
+export type ExistingImputation = {
+  employee_id: number;
+  date: string;
+  project_id: number | null;
+  project_name: string | null;
+  extra_hour_id: number;
+  quantity: number;
+};
+export type ImputationData = { holidays: { date: string; name: string }[]; imputations: ExistingImputation[] };
+export type ImputationRow = {
+  employee_id: number;
+  date: string;
+  project_id: number | null;
+  hours: Record<number, number>;
+};
+
+export function getImputationOptions(baseUrl: string, token: string) {
+  return call<ImputationOptions>(baseUrl, "/bim/portal/imputation/options", { token });
+}
+
+export function loadImputations(baseUrl: string, token: string, employeeIds: number[], dateFrom: string, dateTo: string) {
+  return call<ImputationData>(baseUrl, "/bim/portal/imputation/load", {
+    token,
+    employee_ids: employeeIds,
+    date_from: dateFrom,
+    date_to: dateTo,
+  });
+}
+
+export function saveImputations(baseUrl: string, token: string, rows: ImputationRow[]) {
+  return call<{ count: number }>(baseUrl, "/bim/portal/imputation/save", { token, rows });
+}

@@ -64,3 +64,29 @@ export async function changePasswordAction(_prev: FormState, formData: FormData)
   }
   return { success: "Contraseña actualizada correctamente." };
 }
+
+type ActionResult<T> = ({ ok: true } & T) | { ok: false; error: string };
+
+/** Ejecuta una llamada a Odoo con la sesión actual; si caducó, vuelve al login. */
+async function withSession<T>(fn: (session: { url: string; token: string }) => Promise<T>): Promise<ActionResult<T>> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  try {
+    return { ok: true, ...(await fn(session)) };
+  } catch (error) {
+    if (error instanceof odoo.SessionExpiredError) {
+      await clearSession();
+      redirect("/login?reason=expired");
+    }
+    if (error instanceof odoo.OdooError) return { ok: false, error: error.message };
+    throw error;
+  }
+}
+
+export async function loadImputationAction(employeeIds: number[], dateFrom: string, dateTo: string) {
+  return withSession((s) => odoo.loadImputations(s.url, s.token, employeeIds, dateFrom, dateTo));
+}
+
+export async function saveImputationAction(rows: odoo.ImputationRow[]) {
+  return withSession((s) => odoo.saveImputations(s.url, s.token, rows));
+}
