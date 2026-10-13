@@ -6,9 +6,9 @@ const percentFormat = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 1 
 export const formatHours = (hours: number) => hoursFormat.format(hours);
 export const formatPercent = (share: number) => `${percentFormat.format(share * 100)}%`;
 
-/** "CC 45903000" si la obra tiene centro de costos; si no, su código. */
+/** Código de la obra (campo Código del proyecto, ej. 42805). */
 export function projectCode(project: DashboardProject) {
-  return project.cost_center ? `CC ${project.cost_center}` : project.code;
+  return project.code;
 }
 
 // Rampa secuencial de #714B67 (claro → oscuro), validada: un tono, luminosidad monótona, extremo claro ≥ 2:1

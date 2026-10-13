@@ -142,7 +142,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="notes">
                 <aside className="callout">
                   <p>
-                    {projectCode(leader)} consumió el <strong>{formatPercent(leader.hours / total)}</strong> del total
+                    La obra {projectCode(leader)} consumió el <strong>{formatPercent(leader.hours / total)}</strong> del total
                     de las horas asignadas a obras.
                   </p>
                 </aside>
