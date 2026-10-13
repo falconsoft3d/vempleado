@@ -66,6 +66,11 @@ export default function FilterStep({ options, filter, onChange, error, pending, 
             );
           })}
         </div>
+        {!options.subgroups.length && (
+          <p className="muted small">
+            {options.me.name} no es supervisor de ningún subgrupo, por eso solo puede imputarse a sí mismo.
+          </p>
+        )}
         {group && (
           <>
             <p className="muted small">Integrantes (pulsa para excluir de la carga):</p>
