@@ -45,7 +45,7 @@ export default function ImputationWizard({ options, defaultFrom, defaultTo }: Pr
         <li className={grid ? "active" : ""}>2. Grilla de carga</li>
       </ol>
       {grid ? (
-        <GridStep options={options} grid={grid} onBack={() => setGrid(null)} />
+        <GridStep options={options} filter={filter} grid={grid} onBack={() => setGrid(null)} />
       ) : (
         <FilterStep
           options={options}

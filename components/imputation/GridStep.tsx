@@ -1,22 +1,48 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { saveImputationAction } from "@/app/actions";
-import { formatDate, rowHasHours, toImputationRows, WEEKDAYS, type Grid, type GridRow } from "@/lib/imputation";
-import type { ImputationOptions } from "@/lib/odoo";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { loadImputationAction, saveImputationAction } from "@/app/actions";
+import {
+  buildGrid,
+  formatDate,
+  rowHasHours,
+  toImputationRows,
+  WEEKDAYS,
+  type Filter,
+  type Grid,
+  type GridRow,
+} from "@/lib/imputation";
+import type { ImputationOptions, Named } from "@/lib/odoo";
 
 const HIDDEN_COLUMNS_KEY = "vempleado.hiddenHourTypes";
 
-type Props = { options: ImputationOptions; grid: Grid; onBack: () => void };
+type Props = { options: ImputationOptions; filter: Filter; grid: Grid; onBack: () => void };
 
-export default function GridStep({ options, grid, onBack }: Props) {
+export default function GridStep({ options, filter, grid, onBack }: Props) {
   const [rows, setRows] = useState(grid.rows);
+  const [projects, setProjects] = useState(grid.projects);
+  // Empleados cuya grilla ya se cargó; se guardan todos juntos
+  const [loaded, setLoaded] = useState<Named[]>(grid.employees);
+  const [view, setView] = useState(grid.employees.length > 1 ? "all" : String(grid.employees[0].id));
+  const [loading, startLoading] = useTransition();
   const [hidden, setHidden] = useState<number[]>([]);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<{ error?: string; success?: string }>({});
   const [pending, startTransition] = useTransition();
   const columns = options.hour_types.filter((type) => !hidden.includes(type.id));
-  const commonProject = rows.every((row) => row.projectId === rows[0]?.projectId) ? rows[0]?.projectId ?? null : null;
+
+  // El supervisor y los integrantes de los grupos que supervisa
+  const allEmployees = useMemo(() => {
+    const employees = new Map<number, Named>([[options.me.id, options.me]]);
+    for (const subgroup of options.subgroups) for (const member of subgroup.members) employees.set(member.id, member);
+    return [...employees.values()];
+  }, [options]);
+  const visibleEmployees = view === "all" ? loaded : loaded.filter((employee) => String(employee.id) === view);
+  const visibleIds = new Set(visibleEmployees.map((employee) => employee.id));
+  const visibleRows = rows.filter((row) => visibleIds.has(row.employeeId));
+  const commonProject = visibleRows.every((row) => row.projectId === visibleRows[0]?.projectId)
+    ? visibleRows[0]?.projectId ?? null
+    : null;
 
   useEffect(() => {
     try {
@@ -40,11 +66,34 @@ export default function GridStep({ options, grid, onBack }: Props) {
     setStatus({});
   }
 
-  /** El proyecto elegido en la cabecera se aplica a todas las líneas. */
+  /** El proyecto elegido en la cabecera se aplica a todas las líneas visibles. */
   function setProjectForAll(projectId: number | null) {
-    setRows((previous) => previous.map((row) => ({ ...row, projectId })));
+    setRows((previous) => previous.map((row) => (visibleIds.has(row.employeeId) ? { ...row, projectId } : row)));
     setInvalid(new Set());
     setStatus({});
+  }
+
+  /** Cambia el empleado de la grilla; si aún no se cargó, trae sus horas del intervalo. */
+  function changeEmployee(value: string) {
+    setStatus({});
+    if (value === "all" || loaded.some((employee) => String(employee.id) === value)) {
+      setView(value);
+      return;
+    }
+    const employee = allEmployees.find((candidate) => String(candidate.id) === value);
+    if (!employee) return;
+    startLoading(async () => {
+      const result = await loadImputationAction([employee.id], filter.dateFrom, filter.dateTo);
+      if (!result.ok) {
+        setStatus({ error: result.error });
+        return;
+      }
+      const extra = buildGrid(options, filter, [employee], result);
+      setRows((previous) => [...previous, ...extra.rows]);
+      setProjects((previous) => [...previous, ...extra.projects.filter((p) => !previous.some((q) => q.id === p.id))]);
+      setLoaded((previous) => [...previous, employee]);
+      setView(value);
+    });
   }
 
   function setHours(key: string, typeId: number, value: string) {
@@ -60,6 +109,7 @@ export default function GridStep({ options, grid, onBack }: Props) {
     const missing = rows.filter((row) => rowHasHours(row) && !row.projectId);
     setInvalid(new Set(missing.map((row) => row.key)));
     if (missing.length) {
+      if (!missing.some((row) => visibleIds.has(row.employeeId))) setView(String(missing[0].employeeId));
       setStatus({ error: `Selecciona el proyecto en ${missing.length} día(s) con horas cargadas.` });
       return;
     }
@@ -95,10 +145,29 @@ export default function GridStep({ options, grid, onBack }: Props) {
             ))}
           </div>
         </details>
-        <button type="button" className="btn btn-primary" onClick={save} disabled={pending}>
+        {allEmployees.length > 1 && (
+          <label className="employee-picker">
+            Empleado
+            <select value={view} onChange={(event) => changeEmployee(event.target.value)} disabled={loading || pending}>
+              {loaded.length > 1 && <option value="all">Todos los cargados ({loaded.length})</option>}
+              {allEmployees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                  {employee.id === options.me.id ? " (yo)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <button type="button" className="btn btn-primary" onClick={save} disabled={pending || loading}>
           {pending ? "Guardando…" : "Guardar imputación"}
         </button>
       </div>
+      {loaded.length > 1 && (
+        <p className="muted small">
+          Al guardar se graban las horas de todos los empleados cargados ({loaded.map((e) => e.name).join(", ")}).
+        </p>
+      )}
       {status.error && <p className="alert alert-error">{status.error}</p>}
       {status.success && <p className="alert alert-success">{status.success}</p>}
 
@@ -117,7 +186,7 @@ export default function GridStep({ options, grid, onBack }: Props) {
                   onChange={(event) => setProjectForAll(event.target.value ? Number(event.target.value) : null)}
                 >
                   <option value="">Proyecto (todas las líneas)</option>
-                  {grid.projects.map((project) => (
+                  {projects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
                     </option>
@@ -131,11 +200,11 @@ export default function GridStep({ options, grid, onBack }: Props) {
               ))}
             </tr>
           </thead>
-          {grid.employees.map((employee) => {
+          {visibleEmployees.map((employee) => {
             const employeeRows = rows.filter((row) => row.employeeId === employee.id);
             return (
               <tbody key={employee.id}>
-                {grid.employees.length > 1 && (
+                {visibleEmployees.length > 1 && (
                   <tr className="group-row">
                     <th colSpan={3 + columns.length}>{employee.name}</th>
                   </tr>
@@ -162,7 +231,7 @@ export default function GridStep({ options, grid, onBack }: Props) {
                         }
                       >
                         <option value="">—</option>
-                        {grid.projects.map((project) => (
+                        {projects.map((project) => (
                           <option key={project.id} value={project.id}>
                             {project.name}
                           </option>
@@ -196,7 +265,7 @@ export default function GridStep({ options, grid, onBack }: Props) {
                   </tr>
                 ))}
                 <tr className="total-row">
-                  <td colSpan={3}>Total{grid.employees.length > 1 ? ` · ${employee.name}` : ""}</td>
+                  <td colSpan={3}>Total{visibleEmployees.length > 1 ? ` · ${employee.name}` : ""}</td>
                   {columns.map((type) => (
                     <td key={type.id} className="num">
                       {total(employeeRows, type.id)}

@@ -245,3 +245,89 @@ a { color: inherit; text-decoration: none; }
 /* Celda con horas cargadas */
 .grid-table td.filled { background: #fff3bf; }
 .grid-table td.filled input[type="number"] { background: #fff3bf; border-color: #e0b400; font-weight: 600; }
+
+/* Dashboard */
+.filter-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 1.5rem; margin-bottom: 1.25rem; }
+.range-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem; }
+.range-form label { display: grid; gap: 0.25rem; font-size: 0.85rem; font-weight: 500; }
+.range-form input { font: inherit; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.range-form .btn { padding: 0.55rem 1rem; }
+.presets { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.preset { font-size: 0.85rem; padding: 0.35rem 0.75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); }
+.preset:hover { background: var(--bg); }
+.preset.active { border-color: var(--primary); background: var(--primary-soft); font-weight: 600; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.kpi { display: grid; gap: 0.25rem; }
+.kpi-label { color: var(--muted); font-size: 0.9rem; }
+.kpi-value { font-size: 1.8rem; font-weight: 600; }
+.kpi-hero .kpi-value { font-size: 3rem; line-height: 1.1; }
+.chart-card { margin-bottom: 1rem; }
+.chart-card h2 { font-size: 1.2rem; }
+
+.chart-with-notes { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 1rem; margin-top: 1rem; align-items: start; }
+.notes { display: grid; gap: 0.75rem; }
+.callout { border: 1px solid var(--border); border-radius: 10px; padding: 0.75rem 0.9rem; background: var(--bg); font-size: 0.9rem; }
+.callout p { margin: 0; }
+
+.treemap { position: relative; width: 100%; }
+.treemap-tile {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--surface); /* 2px de separación entre bloques vecinos */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.25rem;
+  overflow: hidden;
+  cursor: default;
+  outline-offset: -3px;
+}
+.treemap-tile:hover { filter: brightness(1.08); }
+.treemap-tile:focus-visible { outline: 2px solid var(--text); }
+.tile-title { font-size: 1.25rem; }
+.tile-small { font-size: 0.8rem; line-height: 1.25; }
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  display: grid;
+  gap: 0.1rem;
+  min-width: 160px;
+  max-width: 230px;
+  padding: 0.5rem 0.65rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+  font-size: 0.85rem;
+}
+.chart-tooltip .muted { margin: 0; }
+
+.concentration { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 1.25rem; align-items: center; margin-top: 1rem; }
+.bars { display: grid; gap: 1rem; }
+.bar-row { display: grid; grid-template-columns: 170px minmax(0, 1fr); align-items: center; gap: 0.75rem; }
+.bar-label { text-align: right; font-size: 0.9rem; line-height: 1.3; }
+.bar-label span { display: block; color: var(--muted); }
+.bar-track { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.bar { height: 24px; background: var(--primary); border-radius: 0 4px 4px 0; flex-shrink: 0; }
+.bar-rest { background: #c3c2b7; }
+.bar-value { white-space: nowrap; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.bar-row:hover .bar { filter: brightness(1.12); }
+.data-table td.num { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 900px) {
+  .chart-with-notes, .concentration { grid-template-columns: 1fr; }
+  .notes { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+}
+@media (max-width: 600px) {
+  .bar-row { grid-template-columns: 1fr; gap: 0.25rem; }
+  .bar-label { text-align: left; }
+  .kpi-hero .kpi-value { font-size: 2.4rem; }
+}
+
+.employee-picker { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
+.employee-picker select { font: inherit; padding: 0.6rem 0.75rem; border: 1px solid var(--primary); border-radius: 8px; background: var(--surface); max-width: 280px; }

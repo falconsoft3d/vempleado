@@ -117,3 +117,19 @@ export function loadImputations(baseUrl: string, token: string, employeeIds: num
 export function saveImputations(baseUrl: string, token: string, rows: ImputationRow[]) {
   return call<{ count: number }>(baseUrl, "/bim/portal/imputation/save", { token, rows });
 }
+
+// ------------------------------------------------------- Dashboard
+
+export type DashboardProject = {
+  id: number;
+  code: string;
+  name: string;
+  cost_center: string | null;
+  client: string | null;
+  hours: number;
+};
+export type DashboardData = { date_from: string; date_to: string; total_hours: number; projects: DashboardProject[] };
+
+export function getDashboard(baseUrl: string, token: string, dateFrom: string, dateTo: string) {
+  return call<DashboardData>(baseUrl, "/bim/portal/dashboard", { token, date_from: dateFrom, date_to: dateTo });
+}
