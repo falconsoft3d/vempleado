@@ -87,9 +87,14 @@ const iso = (time: number) => new Date(time).toISOString().slice(0, 10);
 export function presets(now = new Date()) {
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   return [
-    { label: "Este mes", from: iso(Date.UTC(now.getFullYear(), now.getMonth(), 1)), to: iso(today) },
+    // Mes y año completos: incluyen horas ya cargadas para días posteriores a hoy
+    {
+      label: "Este mes",
+      from: iso(Date.UTC(now.getFullYear(), now.getMonth(), 1)),
+      to: iso(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0)),
+    },
     { label: "Últimos 30 días", from: iso(today - 29 * DAY), to: iso(today) },
     { label: "Últimos 90 días", from: iso(today - 89 * DAY), to: iso(today) },
-    { label: "Este año", from: iso(Date.UTC(now.getFullYear(), 0, 1)), to: iso(today) },
+    { label: "Este año", from: iso(Date.UTC(now.getFullYear(), 0, 1)), to: iso(Date.UTC(now.getFullYear(), 11, 31)) },
   ];
 }
