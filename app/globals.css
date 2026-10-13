@@ -4,8 +4,9 @@
   --text: #1d2330;
   --muted: #667085;
   --border: #e4e7ec;
-  --primary: #d6001c;
-  --primary-hover: #b30017;
+  --primary: #714b67;
+  --primary-hover: #5c3d54;
+  --primary-soft: #f4eef3;
   --sidebar: #1d2330;
   --sidebar-text: #c9ced8;
   --radius: 10px;
@@ -195,11 +196,11 @@ a { color: inherit; text-decoration: none; }
 
 .option-list { display: grid; gap: 0.5rem; margin: 0.75rem 0; }
 .option { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
-.option.selected { border-color: var(--primary); background: #fff5f6; }
+.option.selected { border-color: var(--primary); background: var(--primary-soft); }
 .option span { display: grid; }
 .option small { color: var(--muted); }
 .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
-.chip { font: inherit; font-size: 0.9rem; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--primary); background: #fff5f6; color: var(--text); cursor: pointer; }
+.chip { font: inherit; font-size: 0.9rem; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--primary); background: var(--primary-soft); color: var(--text); cursor: pointer; }
 .chip-off { border-color: var(--border); background: var(--bg); color: var(--muted); text-decoration: line-through; }
 
 .search { width: 100%; font: inherit; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; margin: 0.5rem 0; }
@@ -238,3 +239,5 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 768px) {
   .grid-toolbar .btn-primary { margin-left: 0; width: 100%; }
 }
+
+.grid-table thead .header-select { font-weight: 600; color: var(--text); border-color: var(--primary); }

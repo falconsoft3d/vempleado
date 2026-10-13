@@ -16,6 +16,7 @@ export default function GridStep({ options, grid, onBack }: Props) {
   const [status, setStatus] = useState<{ error?: string; success?: string }>({});
   const [pending, startTransition] = useTransition();
   const columns = options.hour_types.filter((type) => !hidden.includes(type.id));
+  const commonProject = rows.every((row) => row.projectId === rows[0]?.projectId) ? rows[0]?.projectId ?? null : null;
 
   useEffect(() => {
     try {
@@ -36,6 +37,13 @@ export default function GridStep({ options, grid, onBack }: Props) {
 
   function update(key: string, change: (row: GridRow) => GridRow) {
     setRows((previous) => previous.map((row) => (row.key === key ? change(row) : row)));
+    setStatus({});
+  }
+
+  /** El proyecto elegido en la cabecera se aplica a todas las líneas. */
+  function setProjectForAll(projectId: number | null) {
+    setRows((previous) => previous.map((row) => ({ ...row, projectId })));
+    setInvalid(new Set());
     setStatus({});
   }
 
@@ -100,7 +108,22 @@ export default function GridStep({ options, grid, onBack }: Props) {
             <tr>
               <th>Día</th>
               <th>Fecha</th>
-              <th>Proyecto</th>
+              <th>
+                <select
+                  className="header-select"
+                  value={commonProject ?? ""}
+                  aria-label="Proyecto para todas las líneas"
+                  title="Aplicar a todas las líneas"
+                  onChange={(event) => setProjectForAll(event.target.value ? Number(event.target.value) : null)}
+                >
+                  <option value="">Proyecto (todas las líneas)</option>
+                  {grid.projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </th>
               {columns.map((type) => (
                 <th key={type.id} className="num">
                   {type.name}
