@@ -168,6 +168,12 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
           Al guardar se graban las horas de todos los empleados cargados ({loaded.map((e) => e.name).join(", ")}).
         </p>
       )}
+      {!options.hour_types.some((type) => type.default_qty > 0) && (
+        <p className="alert alert-info">
+          Ningún tipo de hora tiene «Horas por defecto en portal» configuradas en Odoo, por eso no se precargan horas
+          (BIM → Datos → Costes → Horas extras).
+        </p>
+      )}
       {status.error && <p className="alert alert-error">{status.error}</p>}
       {status.success && <p className="alert alert-success">{status.success}</p>}
 
