@@ -35,6 +35,12 @@ export function rampStep(value: number, max: number) {
 }
 export const inkForStep = (step: number, darkInkSteps = DARK_INK_STEPS) => (step < darkInkSteps ? "#1d2330" : "#ffffff");
 
+/** Un bloque o porción: una obra (con código y cliente) o un empleado (solo nombre). */
+export type ChartItem = { id: number; name: string; code?: string; detail?: string | null; hours: number };
+
+export const chartItemLabel = (item: ChartItem) =>
+  !item.code ? item.name : item.name === item.code ? `[${item.code}]` : `${item.name} [${item.code}]`;
+
 // ------------------------------------------------------- Treemap (squarified)
 
 export type Rect = { x: number; y: number; w: number; h: number };

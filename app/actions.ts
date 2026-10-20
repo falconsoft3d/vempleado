@@ -90,3 +90,7 @@ export async function loadImputationAction(employeeIds: number[], dateFrom: stri
 export async function saveImputationAction(rows: odoo.ImputationRow[]) {
   return withSession((s) => odoo.saveImputations(s.url, s.token, rows));
 }
+
+export async function dashboardDetailAction(projectId: number, dateFrom: string, dateTo: string, employeeIds: number[]) {
+  return withSession((s) => odoo.getDashboardDetail(s.url, s.token, projectId, dateFrom, dateTo, employeeIds));
+}

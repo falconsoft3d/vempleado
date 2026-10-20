@@ -1,19 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatHours, formatPercent, inkForStep, PROJECT_PALETTE, rampStep, squarify, type Palette } from "@/lib/dashboard";
+import {
+  chartItemLabel as itemLabel,
+  formatHours,
+  formatPercent,
+  inkForStep,
+  PROJECT_PALETTE,
+  rampStep,
+  squarify,
+  type ChartItem,
+  type Palette,
+} from "@/lib/dashboard";
 
-/** Un bloque: una obra (con código y cliente) o un empleado (solo nombre). */
-export type TreemapItem = { id: number; name: string; code?: string; detail?: string | null; hours: number };
+export type ChartProps = { items: ChartItem[]; total: number; palette?: Palette; onSelect?: (id: number) => void };
+type Tip = { item: ChartItem; x: number; y: number };
 
-type Props = { items: TreemapItem[]; total: number; palette?: Palette; onSelect?: (id: number) => void };
-type Tip = { item: TreemapItem; x: number; y: number };
+const showName = (item: ChartItem) => item.name !== item.code;
 
-const itemLabel = (item: TreemapItem) =>
-  !item.code ? item.name : item.name === item.code ? `[${item.code}]` : `${item.name} [${item.code}]`;
-const showName = (item: TreemapItem) => item.name !== item.code;
-
-export default function Treemap({ items, total, palette = PROJECT_PALETTE, onSelect }: Props) {
+export default function Treemap({ items, total, palette = PROJECT_PALETTE, onSelect }: ChartProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [tip, setTip] = useState<Tip | null>(null);

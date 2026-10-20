@@ -149,7 +149,44 @@ export type DashboardData = {
   projects: DashboardProject[];
   employees: Named[];
   employee_ids: number[];
+  // Opcionales: Odoo los envía desde la versión con el KPI de horas extra
+  overtime_50?: number;
+  overtime_100?: number;
+  overtime_employees?: OvertimeEmployee[];
 };
+/** Horas al 50% y al 100% de un empleado en el intervalo. */
+export type OvertimeEmployee = Named & { hours_50: number; hours_100: number };
+
+/** Una línea de horas cargada en una obra (detalle del dashboard). */
+export type DashboardLine = {
+  id: number;
+  date: string;
+  employee: string;
+  hour_type: string;
+  hours: number;
+  site: string | null;
+  plus_distancia: boolean;
+  hs_nocturna: boolean;
+  note: string | null;
+  imputed_by: string | null;
+};
+
+export function getDashboardDetail(
+  baseUrl: string,
+  token: string,
+  projectId: number,
+  dateFrom: string,
+  dateTo: string,
+  employeeIds: number[],
+) {
+  return call<{ lines: DashboardLine[] }>(baseUrl, "/bim/portal/dashboard/detail", {
+    token,
+    project_id: projectId,
+    date_from: dateFrom,
+    date_to: dateTo,
+    employee_ids: employeeIds,
+  });
+}
 
 export function getDashboard(baseUrl: string, token: string, dateFrom: string, dateTo: string, employeeIds: number[]) {
   return call<DashboardData>(baseUrl, "/bim/portal/dashboard", {

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import ConcentrationBars from "@/components/dashboard/ConcentrationBars";
 import EffortSection from "@/components/dashboard/EffortSection";
+import KpiRow from "@/components/dashboard/KpiRow";
+import ProjectTable from "@/components/dashboard/ProjectTable";
+import TopProjects from "@/components/dashboard/TopProjects";
 import { formatHours, formatPercent, presets } from "@/lib/dashboard";
 import { formatDate } from "@/lib/imputation";
 import { getDashboard, OdooError, type DashboardData } from "@/lib/odoo";
@@ -115,22 +118,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="alert alert-info">No hay horas imputadas a obras en este intervalo.</p>
       ) : (
         <>
-          <div className="kpis">
-            <div className="card kpi kpi-hero">
-              <span className="kpi-label">Horas imputadas a obras</span>
-              <span className="kpi-value">{formatHours(total)} h</span>
-            </div>
-            <div className="card kpi">
-              <span className="kpi-label">Obras con horas</span>
-              <span className="kpi-value">{projects.length}</span>
-            </div>
-            <div className="card kpi">
-              <span className="kpi-label">Concentración en las 3 principales</span>
-              <span className="kpi-value">{formatPercent(topShare)}</span>
-            </div>
-          </div>
+          <KpiRow
+            total={total}
+            projectCount={projects.length}
+            topShare={topShare}
+            overtime50={data?.overtime_50 ?? 0}
+            overtime100={data?.overtime_100 ?? 0}
+            overtimeEmployees={data?.overtime_employees ?? []}
+            period={`${from}_${to}`}
+          />
 
           <EffortSection projects={projects} total={total} />
+
+          <TopProjects projects={projects} total={total} />
 
           <section className="card chart-card">
             <h2>Concentración del esfuerzo por centro de costos</h2>
@@ -138,35 +138,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <ConcentrationBars projects={projects} total={total} />
           </section>
 
-          <section className="card chart-card">
-            <h2>Detalle por obra</h2>
-            <div className="table-wrap">
-              <table className="grid-table data-table">
-                <thead>
-                  <tr>
-                    <th>Obra</th>
-                    <th>Cliente</th>
-                    <th>Centro de costos</th>
-                    <th className="num">Horas</th>
-                    <th className="num">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((project) => (
-                    <tr key={project.id}>
-                      <td>
-                        [{project.code}] {project.name}
-                      </td>
-                      <td>{project.client ?? "—"}</td>
-                      <td>{project.cost_center ?? "—"}</td>
-                      <td className="num">{formatHours(project.hours)}</td>
-                      <td className="num">{formatPercent(project.hours / total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <ProjectTable projects={projects} total={total} from={from} to={to} employeeIds={selectedIds} />
         </>
       )}
     </>
