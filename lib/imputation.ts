@@ -71,6 +71,9 @@ export type GridRow = {
   nonWorking: boolean;
   projectId: number | null;
   hours: Record<number, string>;
+  plusDistancia: boolean;
+  hsNocturna: boolean;
+  note: string;
 };
 
 export type Grid = {
@@ -108,6 +111,10 @@ export function buildGrid(options: ImputationOptions, filter: Filter, employees:
       const previous = existing.get(key);
       const hours: Record<number, string> = {};
       let projectId: number | null = null;
+      // Las marcas y notas del día se graban en todas sus líneas
+      const plusDistancia = previous?.some((imputation) => imputation.plus_distancia) ?? false;
+      const hsNocturna = previous?.some((imputation) => imputation.hs_nocturna) ?? false;
+      const note = previous?.find((imputation) => imputation.note)?.note ?? "";
 
       if (previous) {
         projectId = previous[0].project_id;
@@ -119,7 +126,7 @@ export function buildGrid(options: ImputationOptions, filter: Filter, employees:
         projectId = defaultProjectId;
         for (const type of options.hour_types) if (type.default_qty > 0) hours[type.id] = String(type.default_qty);
       }
-      rows.push({ key, employeeId: employee.id, date, weekday, holiday, nonWorking, projectId, hours });
+      rows.push({ key, employeeId: employee.id, date, weekday, holiday, nonWorking, projectId, hours, plusDistancia, hsNocturna, note });
     }
   }
   return { employees, projects, defaultProjectId, rows };
@@ -137,5 +144,8 @@ export function toImputationRows(rows: GridRow[], hourTypes: HourType[]): Imputa
     hours: Object.fromEntries(
       hourTypes.map((type) => [type.id, Number(row.hours[type.id] || 0)]).filter(([, qty]) => qty > 0),
     ),
+    plus_distancia: row.plusDistancia,
+    hs_nocturna: row.hsNocturna,
+    note: row.note.trim(),
   }));
 }

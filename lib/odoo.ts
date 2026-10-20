@@ -92,6 +92,9 @@ export type ExistingImputation = {
   project_name: string | null;
   extra_hour_id: number;
   quantity: number;
+  plus_distancia: boolean;
+  hs_nocturna: boolean;
+  note: string;
 };
 export type ImputationData = { holidays: { date: string; name: string }[]; imputations: ExistingImputation[] };
 export type ImputationRow = {
@@ -99,6 +102,9 @@ export type ImputationRow = {
   date: string;
   project_id: number | null;
   hours: Record<number, number>;
+  plus_distancia: boolean;
+  hs_nocturna: boolean;
+  note: string;
 };
 
 export function getImputationOptions(baseUrl: string, token: string) {

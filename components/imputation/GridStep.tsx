@@ -16,6 +16,12 @@ import type { ImputationOptions, Named } from "@/lib/odoo";
 
 const HIDDEN_COLUMNS_KEY = "vempleado.hiddenHourTypes";
 
+/** Marcas del día (booleanos en Odoo), después de los tipos de hora. */
+const FLAGS = [
+  { key: "plusDistancia", name: "Plus Distancia" },
+  { key: "hsNocturna", name: "HS Nocturna" },
+] as const;
+
 type Props = { options: ImputationOptions; filter: Filter; grid: Grid; onBack: () => void };
 
 export default function GridStep({ options, filter, grid, onBack }: Props) {
@@ -107,10 +113,19 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
 
   function save() {
     const missing = rows.filter((row) => rowHasHours(row) && !row.projectId);
-    setInvalid(new Set(missing.map((row) => row.key)));
-    if (missing.length) {
-      if (!missing.some((row) => visibleIds.has(row.employeeId))) setView(String(missing[0].employeeId));
-      setStatus({ error: `Selecciona el proyecto en ${missing.length} día(s) con horas cargadas.` });
+    // Las marcas y notas se graban en las líneas de horas: sin horas no hay dónde guardarlas
+    const unflaggable = rows.filter(
+      (row) => (row.plusDistancia || row.hsNocturna || row.note.trim()) && !rowHasHours(row),
+    );
+    const wrong = missing.length ? missing : unflaggable;
+    setInvalid(new Set(wrong.map((row) => row.key)));
+    if (wrong.length) {
+      if (!wrong.some((row) => visibleIds.has(row.employeeId))) setView(String(wrong[0].employeeId));
+      setStatus({
+        error: missing.length
+          ? `Selecciona el proyecto en ${missing.length} día(s) con horas cargadas.`
+          : `Carga horas en ${unflaggable.length} día(s) con Plus Distancia, HS Nocturna o notas.`,
+      });
       return;
     }
     startTransition(async () => {
@@ -204,6 +219,12 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                   {type.name}
                 </th>
               ))}
+              {FLAGS.map((flag) => (
+                <th key={flag.key} className="num">
+                  {flag.name}
+                </th>
+              ))}
+              <th>Notas</th>
             </tr>
           </thead>
           {visibleEmployees.map((employee) => {
@@ -212,7 +233,7 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
               <tbody key={employee.id}>
                 {visibleEmployees.length > 1 && (
                   <tr className="group-row">
-                    <th colSpan={3 + columns.length}>{employee.name}</th>
+                    <th colSpan={4 + columns.length + FLAGS.length}>{employee.name}</th>
                   </tr>
                 )}
                 {employeeRows.map((row) => (
@@ -268,6 +289,26 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                         )}
                       </td>
                     ))}
+                    {FLAGS.map((flag) => (
+                      <td key={flag.key} className={row[flag.key] ? "num filled" : "num"}>
+                        <input
+                          type="checkbox"
+                          aria-label={`${flag.name} ${formatDate(row.date)}`}
+                          checked={row[flag.key]}
+                          onChange={(event) => update(row.key, (current) => ({ ...current, [flag.key]: event.target.checked }))}
+                        />
+                      </td>
+                    ))}
+                    <td>
+                      <input
+                        type="text"
+                        className="note-input"
+                        maxLength={250}
+                        aria-label={`Notas ${formatDate(row.date)}`}
+                        value={row.note}
+                        onChange={(event) => update(row.key, (current) => ({ ...current, note: event.target.value }))}
+                      />
+                    </td>
                   </tr>
                 ))}
                 <tr className="total-row">
@@ -277,6 +318,12 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                       {total(employeeRows, type.id)}
                     </td>
                   ))}
+                  {FLAGS.map((flag) => (
+                    <td key={flag.key} className="num">
+                      {employeeRows.filter((row) => row[flag.key]).length}
+                    </td>
+                  ))}
+                  <td />
                 </tr>
               </tbody>
             );
