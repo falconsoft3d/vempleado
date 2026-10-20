@@ -1,5 +1,5 @@
 import ImputationWizard from "@/components/imputation/ImputationWizard";
-import { currentWeek } from "@/lib/imputation";
+import { currentMonth } from "@/lib/imputation";
 import { getImputationOptions, OdooError, type ImputationOptions } from "@/lib/odoo";
 import { requireEmployee } from "@/lib/session";
 
@@ -14,7 +14,7 @@ export default async function ImputarPage() {
     if (!(e instanceof OdooError)) throw e;
     error = e.message;
   }
-  const [defaultFrom, defaultTo] = currentWeek();
+  const [defaultFrom, defaultTo] = currentMonth();
 
   return (
     <>

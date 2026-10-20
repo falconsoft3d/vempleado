@@ -26,11 +26,12 @@ export function formatDate(value: string) {
   return `${day}/${month}/${year}`;
 }
 
-/** Lunes a domingo de la semana actual. */
-export function currentWeek(now = new Date()): [string, string] {
-  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-  const monday = today - ((new Date(today).getUTCDay() + 6) % 7) * DAY;
-  return [toISO(new Date(monday)), toISO(new Date(monday + 6 * DAY))];
+/** Primer y último día del mes actual. */
+export function currentMonth(now = new Date()): [string, string] {
+  return [
+    toISO(new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1))),
+    toISO(new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0))),
+  ];
 }
 
 // ------------------------------------------------------------------ Filtro (pantalla 1)
