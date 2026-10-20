@@ -288,6 +288,9 @@ a { color: inherit; text-decoration: none; }
 .treemap-tile:hover { filter: brightness(1.08); }
 .treemap-tile:focus-visible { outline: 2px solid var(--text); }
 .tile-title { font-size: 1.25rem; }
+/* Nombre de la obra: se corta con "…" si no entra en el bloque */
+.tile-name { font-size: 1rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tile-small.tile-name { font-size: 0.8rem; -webkit-line-clamp: 1; }
 .tile-small { font-size: 0.8rem; line-height: 1.25; }
 .chart-tooltip {
   position: absolute;

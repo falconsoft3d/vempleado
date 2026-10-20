@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatHours, formatPercent, inkForStep, projectCode, RAMP, rampStep, squarify } from "@/lib/dashboard";
+import { formatHours, formatPercent, inkForStep, projectCode, projectLabel, RAMP, rampStep, squarify } from "@/lib/dashboard";
 import type { DashboardProject } from "@/lib/odoo";
 
 type Tip = { project: DashboardProject; x: number; y: number };
@@ -31,7 +31,7 @@ export default function Treemap({ projects, total }: { projects: DashboardProjec
         const step = rampStep(tile.hours, max);
         const big = tile.w >= 150 && tile.h >= 70;
         const medium = tile.w >= 80 && tile.h >= 44;
-        const label = `${projectCode(tile)}: ${formatHours(tile.hours)} horas (${formatPercent(tile.hours / total)})`;
+        const label = `${projectLabel(tile)}: ${formatHours(tile.hours)} horas (${formatPercent(tile.hours / total)})`;
         return (
           <div
             key={tile.id}
@@ -56,13 +56,13 @@ export default function Treemap({ projects, total }: { projects: DashboardProjec
           >
             {big ? (
               <>
-                <strong className="tile-title">{projectCode(tile)}</strong>
-                <span>{formatHours(tile.hours)} horas</span>
+                {tile.name !== tile.code && <strong className="tile-title tile-name">{tile.name}</strong>}
+                <span>[{projectCode(tile)}] · {formatHours(tile.hours)} horas</span>
               </>
             ) : medium ? (
               <>
-                <span className="tile-small">{projectCode(tile)}</span>
-                <span className="tile-small">({formatHours(tile.hours)}h)</span>
+                {tile.name !== tile.code && <span className="tile-small tile-name">{tile.name}</span>}
+                <span className="tile-small">[{projectCode(tile)}] ({formatHours(tile.hours)}h)</span>
               </>
             ) : null}
           </div>
@@ -77,8 +77,7 @@ export default function Treemap({ projects, total }: { projects: DashboardProjec
           }}
         >
           <strong>{formatHours(tip.project.hours)} h · {formatPercent(tip.project.hours / total)}</strong>
-          <span>{projectCode(tip.project)}</span>
-          <span className="muted">{tip.project.name}</span>
+          <span>{projectLabel(tip.project)}</span>
           {tip.project.client && <span className="muted">{tip.project.client}</span>}
         </div>
       )}

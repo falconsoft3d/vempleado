@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ConcentrationBars from "@/components/dashboard/ConcentrationBars";
 import Treemap from "@/components/dashboard/Treemap";
-import { formatHours, formatPercent, presets, projectCode } from "@/lib/dashboard";
+import { formatHours, formatPercent, presets, projectLabel } from "@/lib/dashboard";
 import { formatDate } from "@/lib/imputation";
 import { getDashboard, OdooError, type DashboardData } from "@/lib/odoo";
 import { requireEmployee } from "@/lib/session";
@@ -142,7 +142,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               <div className="notes">
                 <aside className="callout">
                   <p>
-                    La obra {projectCode(leader)} consumió el <strong>{formatPercent(leader.hours / total)}</strong> del total
+                    La obra {projectLabel(leader)} consumió el <strong>{formatPercent(leader.hours / total)}</strong> del total
                     de las horas asignadas a obras.
                   </p>
                 </aside>
