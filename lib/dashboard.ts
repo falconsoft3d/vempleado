@@ -11,6 +11,11 @@ export function projectCode(project: DashboardProject) {
   return project.code;
 }
 
+/** Nombre de la obra seguido del código entre corchetes (ej. Eficiencia Coagulantes [45806]). */
+export function projectLabel(project: DashboardProject) {
+  return project.name === project.code ? `[${project.code}]` : `${project.name} [${project.code}]`;
+}
+
 // Rampa secuencial de #714B67 (claro → oscuro), validada: un tono, luminosidad monótona, extremo claro ≥ 2:1
 export const RAMP = ["#c2a5ba", "#a5809b", "#8a6380", "#714b67", "#563850", "#3d2638"];
 const DARK_INK_STEPS = 2; // los dos pasos más claros llevan texto oscuro; el resto, blanco

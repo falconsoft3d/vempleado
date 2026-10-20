@@ -1,4 +1,4 @@
-import { formatHours, formatPercent, projectCode } from "@/lib/dashboard";
+import { formatHours, formatPercent, projectCode, projectLabel } from "@/lib/dashboard";
 import type { DashboardProject } from "@/lib/odoo";
 
 const TOP = 3;
@@ -10,8 +10,8 @@ export default function ConcentrationBars({ projects, total }: { projects: Dashb
   const bars = [
     ...top.map((project) => ({
       key: String(project.id),
-      title: project.client ?? project.name,
-      subtitle: `(${projectCode(project)})`,
+      title: project.name,
+      subtitle: `[${projectCode(project)}]`,
       hours: project.hours,
       emphasis: true,
     })),
@@ -50,7 +50,7 @@ export default function ConcentrationBars({ projects, total }: { projects: Dashb
             <strong>
               El {formatPercent(topShare)} de las horas depende de {top.length} obras.
             </strong>{" "}
-            {top[0].client ?? projectCode(top[0])} por sí sola absorbe{" "}
+            {projectLabel(top[0])} por sí sola absorbe{" "}
             {leaderShare > 0.5 ? "más de la mitad" : `el ${formatPercent(leaderShare)}`} de las horas imputadas.
           </p>
         </aside>
