@@ -14,6 +14,7 @@ import {
 } from "@/lib/imputation";
 import type { ImputationOptions, Named } from "@/lib/odoo";
 
+// Columnas ocultas: ids de tipos de hora y claves de las columnas fijas (FLAGS y "note")
 const HIDDEN_COLUMNS_KEY = "vempleado.hiddenHourTypes";
 
 /** Marcas del día (booleanos en Odoo), después de los tipos de hora. */
@@ -31,11 +32,13 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
   const [loaded, setLoaded] = useState<Named[]>(grid.employees);
   const [view, setView] = useState(grid.employees.length > 1 ? "all" : String(grid.employees[0].id));
   const [loading, startLoading] = useTransition();
-  const [hidden, setHidden] = useState<number[]>([]);
+  const [hidden, setHidden] = useState<(number | string)[]>([]);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<{ error?: string; success?: string }>({});
   const [pending, startTransition] = useTransition();
   const columns = options.hour_types.filter((type) => !hidden.includes(type.id));
+  const flags = FLAGS.filter((flag) => !hidden.includes(flag.key));
+  const showNote = !hidden.includes("note");
 
   // El supervisor y los integrantes de los grupos que supervisa
   const allEmployees = useMemo(() => {
@@ -62,9 +65,9 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
     } catch {}
   }, []);
 
-  function toggleColumn(id: number) {
+  function toggleColumn(id: number | string) {
     setHidden((previous) => {
-      const next = previous.includes(id) ? previous.filter((typeId) => typeId !== id) : [...previous, id];
+      const next = previous.includes(id) ? previous.filter((column) => column !== id) : [...previous, id];
       try {
         localStorage.setItem(HIDDEN_COLUMNS_KEY, JSON.stringify(next));
       } catch {}
@@ -175,6 +178,16 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                 {type.name}
               </label>
             ))}
+            {FLAGS.map((flag) => (
+              <label key={flag.key}>
+                <input type="checkbox" checked={!hidden.includes(flag.key)} onChange={() => toggleColumn(flag.key)} />
+                {flag.name}
+              </label>
+            ))}
+            <label>
+              <input type="checkbox" checked={showNote} onChange={() => toggleColumn("note")} />
+              Notas
+            </label>
           </div>
         </details>
         {allEmployees.length > 1 && (
@@ -252,12 +265,12 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                   {type.name}
                 </th>
               ))}
-              {FLAGS.map((flag) => (
+              {flags.map((flag) => (
                 <th key={flag.key} className="num">
                   {flag.name}
                 </th>
               ))}
-              <th>Notas</th>
+              {showNote && <th>Notas</th>}
             </tr>
           </thead>
           {visibleEmployees.map((employee) => {
@@ -266,7 +279,7 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
               <tbody key={employee.id}>
                 {visibleEmployees.length > 1 && (
                   <tr className="group-row">
-                    <th colSpan={4 + columns.length + FLAGS.length}>{employee.name}</th>
+                    <th colSpan={3 + columns.length + flags.length + (showNote ? 1 : 0)}>{employee.name}</th>
                   </tr>
                 )}
                 {employeeRows.map((row) => (
@@ -342,7 +355,7 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                         )}
                       </td>
                     ))}
-                    {FLAGS.map((flag) => (
+                    {flags.map((flag) => (
                       <td key={flag.key} className={row[flag.key] ? "num filled" : "num"}>
                         <input
                           type="checkbox"
@@ -352,16 +365,18 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                         />
                       </td>
                     ))}
-                    <td>
-                      <input
-                        type="text"
-                        className="note-input"
-                        maxLength={250}
-                        aria-label={`Notas ${formatDate(row.date)}`}
-                        value={row.note}
-                        onChange={(event) => update(row.key, (current) => ({ ...current, note: event.target.value }))}
-                      />
-                    </td>
+                    {showNote && (
+                      <td>
+                        <input
+                          type="text"
+                          className="note-input"
+                          maxLength={250}
+                          aria-label={`Notas ${formatDate(row.date)}`}
+                          value={row.note}
+                          onChange={(event) => update(row.key, (current) => ({ ...current, note: event.target.value }))}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))}
                 <tr className="total-row">
@@ -371,12 +386,12 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                       {total(employeeRows, type.id)}
                     </td>
                   ))}
-                  {FLAGS.map((flag) => (
+                  {flags.map((flag) => (
                     <td key={flag.key} className="num">
                       {employeeRows.filter((row) => row[flag.key]).length}
                     </td>
                   ))}
-                  <td />
+                  {showNote && <td />}
                 </tr>
               </tbody>
             );
