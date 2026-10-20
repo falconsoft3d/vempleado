@@ -153,7 +153,12 @@ export type DashboardData = {
   overtime_50?: number;
   overtime_100?: number;
   overtime_employees?: OvertimeEmployee[];
+  plus_distancia_days?: number;
+  hs_nocturna_days?: number;
+  day_flag_employees?: DayFlagEmployee[];
 };
+/** Días con Plus Distancia y con HS Nocturna de un empleado en el intervalo. */
+export type DayFlagEmployee = Named & { plus_distancia: number; hs_nocturna: number };
 /** Horas al 50% y al 100% de un empleado en el intervalo. */
 export type OvertimeEmployee = Named & { hours_50: number; hours_100: number };
 

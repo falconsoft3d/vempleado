@@ -1,4 +1,4 @@
-import { formatHours, formatPercent, projectLabel } from "@/lib/dashboard";
+import { barWidth, formatHours, formatPercent, projectLabel } from "@/lib/dashboard";
 import type { DashboardProject } from "@/lib/odoo";
 
 const TOP = 5;
@@ -20,7 +20,7 @@ export default function TopProjects({ projects, total }: { projects: DashboardPr
                 {project.client && <span className="muted small">{project.client}</span>}
               </div>
               <div className="bar-track">
-                <div className="bar" style={{ width: `${Math.max(1, (project.hours / max) * 100)}%` }} />
+                <div className="bar" style={{ width: barWidth(project.hours, max) }} />
                 <span className="bar-value">
                   {formatHours(project.hours)} h ({formatPercent(project.hours / total)})
                 </span>

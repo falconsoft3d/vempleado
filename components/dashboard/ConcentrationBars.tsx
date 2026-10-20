@@ -1,4 +1,4 @@
-import { formatHours, formatPercent, projectCode, projectLabel } from "@/lib/dashboard";
+import { barWidth, formatHours, formatPercent, projectCode, projectLabel } from "@/lib/dashboard";
 import type { DashboardProject } from "@/lib/odoo";
 
 const TOP = 3;
@@ -35,7 +35,7 @@ export default function ConcentrationBars({ projects, total }: { projects: Dashb
             <div className="bar-track">
               <div
                 className={bar.emphasis ? "bar" : "bar bar-rest"}
-                style={{ width: `${Math.max(1, (bar.hours / max) * 100)}%` }}
+                style={{ width: barWidth(bar.hours, max) }}
               />
               <span className="bar-value">
                 {formatHours(bar.hours)} hs ({formatPercent(bar.hours / total)})

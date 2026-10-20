@@ -125,6 +125,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             overtime50={data?.overtime_50 ?? 0}
             overtime100={data?.overtime_100 ?? 0}
             overtimeEmployees={data?.overtime_employees ?? []}
+            plusDistanciaDays={data?.plus_distancia_days ?? 0}
+            hsNocturnaDays={data?.hs_nocturna_days ?? 0}
+            dayFlagEmployees={data?.day_flag_employees ?? []}
             period={`${from}_${to}`}
           />
 
