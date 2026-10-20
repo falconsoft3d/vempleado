@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { formatHours, formatPercent, inkForStep, projectCode, projectLabel, RAMP, rampStep, squarify } from "@/lib/dashboard";
-import type { DashboardProject } from "@/lib/odoo";
+import { formatHours, formatPercent, inkForStep, PROJECT_PALETTE, rampStep, squarify, type Palette } from "@/lib/dashboard";
 
-type Tip = { project: DashboardProject; x: number; y: number };
+/** Un bloque: una obra (con código y cliente) o un empleado (solo nombre). */
+export type TreemapItem = { id: number; name: string; code?: string; detail?: string | null; hours: number };
 
-export default function Treemap({ projects, total }: { projects: DashboardProject[]; total: number }) {
+type Props = { items: TreemapItem[]; total: number; palette?: Palette; onSelect?: (id: number) => void };
+type Tip = { item: TreemapItem; x: number; y: number };
+
+const itemLabel = (item: TreemapItem) =>
+  !item.code ? item.name : item.name === item.code ? `[${item.code}]` : `${item.name} [${item.code}]`;
+const showName = (item: TreemapItem) => item.name !== item.code;
+
+export default function Treemap({ items, total, palette = PROJECT_PALETTE, onSelect }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [tip, setTip] = useState<Tip | null>(null);
@@ -22,8 +29,8 @@ export default function Treemap({ projects, total }: { projects: DashboardProjec
     return () => observer.disconnect();
   }, []);
 
-  const max = projects[0]?.hours ?? 1;
-  const tiles = squarify(projects, { x: 0, y: 0, w: size.w, h: size.h });
+  const max = items[0]?.hours ?? 1;
+  const tiles = squarify(items, { x: 0, y: 0, w: size.w, h: size.h });
 
   return (
     <div ref={ref} className="treemap" style={{ height: size.h || 320 }} onPointerLeave={() => setTip(null)}>
@@ -31,38 +38,54 @@ export default function Treemap({ projects, total }: { projects: DashboardProjec
         const step = rampStep(tile.hours, max);
         const big = tile.w >= 150 && tile.h >= 70;
         const medium = tile.w >= 80 && tile.h >= 44;
-        const label = `${projectLabel(tile)}: ${formatHours(tile.hours)} horas (${formatPercent(tile.hours / total)})`;
+        const label = `${itemLabel(tile)}: ${formatHours(tile.hours)} horas (${formatPercent(tile.hours / total)})`;
+        const code = tile.code ? `[${tile.code}] · ` : "";
         return (
           <div
             key={tile.id}
-            className="treemap-tile"
+            className={onSelect ? "treemap-tile clickable" : "treemap-tile"}
             tabIndex={0}
-            role="img"
+            role={onSelect ? "button" : "img"}
             aria-label={label}
             style={{
               left: tile.x,
               top: tile.y,
               width: tile.w,
               height: tile.h,
-              background: RAMP[step],
-              color: inkForStep(step),
+              background: palette.ramp[step],
+              color: inkForStep(step, palette.darkInkSteps),
             }}
             onPointerMove={(event) => {
               const box = ref.current!.getBoundingClientRect();
-              setTip({ project: tile, x: event.clientX - box.left, y: event.clientY - box.top });
+              setTip({ item: tile, x: event.clientX - box.left, y: event.clientY - box.top });
             }}
-            onFocus={() => setTip({ project: tile, x: tile.x + tile.w / 2, y: tile.y + tile.h / 2 })}
+            onFocus={() => setTip({ item: tile, x: tile.x + tile.w / 2, y: tile.y + tile.h / 2 })}
             onBlur={() => setTip(null)}
+            onClick={onSelect && (() => onSelect(tile.id))}
+            onKeyDown={
+              onSelect &&
+              ((event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(tile.id);
+                }
+              })
+            }
           >
             {big ? (
               <>
-                {tile.name !== tile.code && <strong className="tile-title tile-name">{tile.name}</strong>}
-                <span>[{projectCode(tile)}] · {formatHours(tile.hours)} horas</span>
+                {showName(tile) && <strong className="tile-title tile-name">{tile.name}</strong>}
+                <span>
+                  {code}
+                  {formatHours(tile.hours)} horas
+                </span>
               </>
             ) : medium ? (
               <>
-                {tile.name !== tile.code && <span className="tile-small tile-name">{tile.name}</span>}
-                <span className="tile-small">[{projectCode(tile)}] ({formatHours(tile.hours)}h)</span>
+                {showName(tile) && <span className="tile-small tile-name">{tile.name}</span>}
+                <span className="tile-small">
+                  {tile.code ? `[${tile.code}] ` : ""}({formatHours(tile.hours)}h)
+                </span>
               </>
             ) : null}
           </div>
@@ -76,9 +99,11 @@ export default function Treemap({ projects, total }: { projects: DashboardProjec
             top: tip.y + 12 > size.h - 90 ? tip.y - 90 : tip.y + 12,
           }}
         >
-          <strong>{formatHours(tip.project.hours)} h · {formatPercent(tip.project.hours / total)}</strong>
-          <span>{projectLabel(tip.project)}</span>
-          {tip.project.client && <span className="muted">{tip.project.client}</span>}
+          <strong>
+            {formatHours(tip.item.hours)} h · {formatPercent(tip.item.hours / total)}
+          </strong>
+          <span>{itemLabel(tip.item)}</span>
+          {tip.item.detail && <span className="muted">{tip.item.detail}</span>}
         </div>
       )}
     </div>

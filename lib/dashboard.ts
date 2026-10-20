@@ -12,7 +12,7 @@ export function projectCode(project: DashboardProject) {
 }
 
 /** Nombre de la obra seguido del código entre corchetes (ej. Eficiencia Coagulantes [45806]). */
-export function projectLabel(project: DashboardProject) {
+export function projectLabel(project: Pick<DashboardProject, "name" | "code">) {
   return project.name === project.code ? `[${project.code}]` : `${project.name} [${project.code}]`;
 }
 
@@ -20,11 +20,20 @@ export function projectLabel(project: DashboardProject) {
 export const RAMP = ["#c2a5ba", "#a5809b", "#8a6380", "#714b67", "#563850", "#3d2638"];
 const DARK_INK_STEPS = 2; // los dos pasos más claros llevan texto oscuro; el resto, blanco
 
+/** Rampa (claro → oscuro, mismo largo que RAMP) y cuántos pasos claros llevan texto oscuro. */
+export type Palette = { ramp: string[]; darkInkSteps: number };
+export const PROJECT_PALETTE: Palette = { ramp: RAMP, darkInkSteps: DARK_INK_STEPS };
+// Naranja para el reparto por empleado; el blanco solo va sobre los dos pasos más oscuros (contraste ≥ 5:1)
+export const EMPLOYEE_PALETTE: Palette = {
+  ramp: ["#fed7aa", "#fdba74", "#fb923c", "#ea580c", "#c2410c", "#9a3412"],
+  darkInkSteps: 4,
+};
+
 /** Más horas = paso más oscuro (escala raíz: con una obra dominante, las medianas siguen distinguiéndose). */
 export function rampStep(value: number, max: number) {
   return Math.min(RAMP.length - 1, Math.round(Math.sqrt(value / max) * (RAMP.length - 1)));
 }
-export const inkForStep = (step: number) => (step < DARK_INK_STEPS ? "#1d2330" : "#ffffff");
+export const inkForStep = (step: number, darkInkSteps = DARK_INK_STEPS) => (step < darkInkSteps ? "#1d2330" : "#ffffff");
 
 // ------------------------------------------------------- Treemap (squarified)
 

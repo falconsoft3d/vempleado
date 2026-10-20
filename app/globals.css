@@ -290,6 +290,8 @@ a { color: inherit; text-decoration: none; }
   outline-offset: -3px;
 }
 .treemap-tile:hover { filter: brightness(1.08); }
+.treemap-tile.clickable { cursor: pointer; }
+.chart-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .treemap-tile:focus-visible { outline: 2px solid var(--text); }
 .tile-title { font-size: 1.25rem; }
 /* Nombre de la obra: se corta con "…" si no entra en el bloque */

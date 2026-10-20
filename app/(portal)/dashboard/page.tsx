@@ -1,13 +1,12 @@
 import Link from "next/link";
 import ConcentrationBars from "@/components/dashboard/ConcentrationBars";
-import Treemap from "@/components/dashboard/Treemap";
-import { formatHours, formatPercent, presets, projectLabel } from "@/lib/dashboard";
+import EffortSection from "@/components/dashboard/EffortSection";
+import { formatHours, formatPercent, presets } from "@/lib/dashboard";
 import { formatDate } from "@/lib/imputation";
 import { getDashboard, OdooError, type DashboardData } from "@/lib/odoo";
 import { requireEmployee } from "@/lib/session";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-const TREEMAP_LABELED = 5;
 
 type Params = { from?: string; to?: string; emp?: string | string[] };
 
@@ -48,9 +47,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       : `${selectedNames.length} empleados`;
   const projects = data?.projects ?? [];
   const total = data?.total_hours ?? 0;
-  const leader = projects[0];
-  const minor = projects.slice(TREEMAP_LABELED);
-  const minorShare = minor.reduce((acc, project) => acc + project.hours, 0) / (total || 1);
   const topShare = projects.slice(0, 3).reduce((acc, project) => acc + project.hours, 0) / (total || 1);
 
   return (
@@ -134,29 +130,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </div>
 
-          <section className="card chart-card">
-            <h2>Distribución del esfuerzo en obras ({formatHours(total)} h)</h2>
-            <p className="muted small">Cada bloque es una obra; su tamaño y su tono son proporcionales a las horas.</p>
-            <div className="chart-with-notes">
-              <Treemap projects={projects} total={total} />
-              <div className="notes">
-                <aside className="callout">
-                  <p>
-                    La obra {projectLabel(leader)} consumió el <strong>{formatPercent(leader.hours / total)}</strong> del total
-                    de las horas asignadas a obras.
-                  </p>
-                </aside>
-                {minor.length > 1 && (
-                  <aside className="callout">
-                    <p>
-                      {minor.length} obras distintas se reparten apenas el <strong>{formatPercent(minorShare)}</strong>{" "}
-                      del tiempo restante.
-                    </p>
-                  </aside>
-                )}
-              </div>
-            </div>
-          </section>
+          <EffortSection projects={projects} total={total} />
 
           <section className="card chart-card">
             <h2>Concentración del esfuerzo por centro de costos</h2>

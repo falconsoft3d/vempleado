@@ -139,6 +139,8 @@ export type DashboardProject = {
   cost_center: string | null;
   client: string | null;
   hours: number;
+  /** Horas de cada empleado en la obra, de mayor a menor. */
+  employees: (Named & { hours: number })[];
 };
 export type DashboardData = {
   date_from: string;
