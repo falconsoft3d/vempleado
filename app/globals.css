@@ -229,6 +229,7 @@ a { color: inherit; text-decoration: none; }
 .grid-table select { font: inherit; padding: 0.35rem; border: 1px solid var(--border); border-radius: 6px; max-width: 260px; background: var(--surface); }
 .grid-table input[type="number"] { font: inherit; width: 4.5rem; padding: 0.35rem; text-align: center; border: 1px solid var(--border); border-radius: 6px; }
 .grid-table input[type="checkbox"] { width: 18px; height: 18px; }
+.grid-table .site-select { display: block; margin-top: 0.35rem; width: 100%; }
 .grid-table .note-input { font: inherit; width: 14rem; padding: 0.35rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
 .grid-table .row-off td { background: #fdecee; color: #a8071a; }
 .grid-table .row-invalid td { background: #fff4e5; }

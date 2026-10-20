@@ -1,4 +1,4 @@
-import type { ExistingImputation, HourType, ImputationData, ImputationOptions, ImputationRow, Named } from "./odoo";
+import type { ExistingImputation, HourType, ImputationData, ImputationOptions, ImputationRow, Named, Project } from "./odoo";
 
 // Igual que PORTAL_MAX_DAYS en Odoo
 export const MAX_DAYS = 62;
@@ -70,6 +70,7 @@ export type GridRow = {
   holiday: string | null;
   nonWorking: boolean;
   projectId: number | null;
+  siteId: number | null;
   hours: Record<number, string>;
   plusDistancia: boolean;
   hsNocturna: boolean;
@@ -78,7 +79,7 @@ export type GridRow = {
 
 export type Grid = {
   employees: Named[];
-  projects: Named[];
+  projects: Project[];
   defaultProjectId: number | null;
   rows: GridRow[];
 };
@@ -96,7 +97,11 @@ export function buildGrid(options: ImputationOptions, filter: Filter, employees:
   const projects = options.projects.filter((project) => filter.projectIds.includes(project.id));
   for (const imputation of data.imputations) {
     if (imputation.project_id && !projects.some((project) => project.id === imputation.project_id)) {
-      projects.push({ id: imputation.project_id, name: imputation.project_name ?? `#${imputation.project_id}` });
+      projects.push({
+        id: imputation.project_id,
+        name: imputation.project_name ?? `#${imputation.project_id}`,
+        site_required: imputation.project_site_required,
+      });
     }
   }
 
@@ -115,6 +120,7 @@ export function buildGrid(options: ImputationOptions, filter: Filter, employees:
       const plusDistancia = previous?.some((imputation) => imputation.plus_distancia) ?? false;
       const hsNocturna = previous?.some((imputation) => imputation.hs_nocturna) ?? false;
       const note = previous?.find((imputation) => imputation.note)?.note ?? "";
+      const siteId = previous?.find((imputation) => imputation.site_id)?.site_id ?? null;
 
       if (previous) {
         projectId = previous[0].project_id;
@@ -126,7 +132,7 @@ export function buildGrid(options: ImputationOptions, filter: Filter, employees:
         projectId = defaultProjectId;
         for (const type of options.hour_types) if (type.default_qty > 0) hours[type.id] = String(type.default_qty);
       }
-      rows.push({ key, employeeId: employee.id, date, weekday, holiday, nonWorking, projectId, hours, plusDistancia, hsNocturna, note });
+      rows.push({ key, employeeId: employee.id, date, weekday, holiday, nonWorking, projectId, siteId, hours, plusDistancia, hsNocturna, note });
     }
   }
   return { employees, projects, defaultProjectId, rows };
@@ -141,6 +147,7 @@ export function toImputationRows(rows: GridRow[], hourTypes: HourType[]): Imputa
     employee_id: row.employeeId,
     date: row.date,
     project_id: row.projectId,
+    site_id: row.siteId,
     hours: Object.fromEntries(
       hourTypes.map((type) => [type.id, Number(row.hours[type.id] || 0)]).filter(([, qty]) => qty > 0),
     ),

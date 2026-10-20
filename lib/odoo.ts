@@ -79,10 +79,13 @@ export function changePassword(baseUrl: string, token: string, oldPassword: stri
 
 export type HourType = { id: number; name: string; input: "hours" | "check"; default_qty: number };
 export type Named = { id: number; name: string };
+/** site_required: al imputar en el proyecto se elige el sitio Veolia. */
+export type Project = Named & { site_required: boolean };
 export type ImputationOptions = {
   me: Named;
   subgroups: (Named & { members: Named[] })[];
-  projects: Named[];
+  projects: Project[];
+  sites: Named[];
   hour_types: HourType[];
 };
 export type ExistingImputation = {
@@ -90,6 +93,8 @@ export type ExistingImputation = {
   date: string;
   project_id: number | null;
   project_name: string | null;
+  project_site_required: boolean;
+  site_id: number | null;
   extra_hour_id: number;
   quantity: number;
   plus_distancia: boolean;
@@ -101,6 +106,7 @@ export type ImputationRow = {
   employee_id: number;
   date: string;
   project_id: number | null;
+  site_id: number | null;
   hours: Record<number, number>;
   plus_distancia: boolean;
   hs_nocturna: boolean;

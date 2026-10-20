@@ -49,6 +49,11 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
   const commonProject = visibleRows.every((row) => row.projectId === visibleRows[0]?.projectId)
     ? visibleRows[0]?.projectId ?? null
     : null;
+  const commonSite = visibleRows.every((row) => row.siteId === visibleRows[0]?.siteId)
+    ? visibleRows[0]?.siteId ?? null
+    : null;
+  const siteRequired = (projectId: number | null) =>
+    projects.some((project) => project.id === projectId && project.site_required);
 
   useEffect(() => {
     try {
@@ -75,6 +80,15 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
   /** El proyecto elegido en la cabecera se aplica a todas las líneas visibles. */
   function setProjectForAll(projectId: number | null) {
     setRows((previous) => previous.map((row) => (visibleIds.has(row.employeeId) ? { ...row, projectId } : row)));
+    setInvalid(new Set());
+    setStatus({});
+  }
+
+  /** El sitio elegido en la cabecera se aplica a las líneas visibles cuyo proyecto lo pide. */
+  function setSiteForAll(siteId: number | null) {
+    setRows((previous) =>
+      previous.map((row) => (visibleIds.has(row.employeeId) && siteRequired(row.projectId) ? { ...row, siteId } : row)),
+    );
     setInvalid(new Set());
     setStatus({});
   }
@@ -113,17 +127,20 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
 
   function save() {
     const missing = rows.filter((row) => rowHasHours(row) && !row.projectId);
+    const missingSite = rows.filter((row) => rowHasHours(row) && siteRequired(row.projectId) && !row.siteId);
     // Las marcas y notas se graban en las líneas de horas: sin horas no hay dónde guardarlas
     const unflaggable = rows.filter(
       (row) => (row.plusDistancia || row.hsNocturna || row.note.trim()) && !rowHasHours(row),
     );
-    const wrong = missing.length ? missing : unflaggable;
+    const wrong = missing.length ? missing : missingSite.length ? missingSite : unflaggable;
     setInvalid(new Set(wrong.map((row) => row.key)));
     if (wrong.length) {
       if (!wrong.some((row) => visibleIds.has(row.employeeId))) setView(String(wrong[0].employeeId));
       setStatus({
         error: missing.length
           ? `Selecciona el proyecto en ${missing.length} día(s) con horas cargadas.`
+          : missingSite.length
+          ? `Selecciona el sitio Veolia en ${missingSite.length} día(s).`
           : `Carga horas en ${unflaggable.length} día(s) con Plus Distancia, HS Nocturna o notas.`,
       });
       return;
@@ -213,6 +230,22 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                     </option>
                   ))}
                 </select>
+                {siteRequired(commonProject) && (
+                  <select
+                    className="header-select site-select"
+                    value={commonSite ?? ""}
+                    aria-label="Sitio Veolia para todas las líneas"
+                    title="Aplicar a todas las líneas"
+                    onChange={(event) => setSiteForAll(event.target.value ? Number(event.target.value) : null)}
+                  >
+                    <option value="">Sitio (todas las líneas)</option>
+                    {options.sites.map((site) => (
+                      <option key={site.id} value={site.id}>
+                        {site.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </th>
               {columns.map((type) => (
                 <th key={type.id} className="num">
@@ -264,6 +297,26 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
                           </option>
                         ))}
                       </select>
+                      {siteRequired(row.projectId) && (
+                        <select
+                          className="site-select"
+                          value={row.siteId ?? ""}
+                          aria-label={`Sitio Veolia del ${formatDate(row.date)}`}
+                          onChange={(event) =>
+                            update(row.key, (current) => ({
+                              ...current,
+                              siteId: event.target.value ? Number(event.target.value) : null,
+                            }))
+                          }
+                        >
+                          <option value="">Sitio Veolia…</option>
+                          {options.sites.map((site) => (
+                            <option key={site.id} value={site.id}>
+                              {site.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     {columns.map((type) => (
                       <td key={type.id} className={Number(row.hours[type.id]) > 0 ? "num filled" : "num"}>
