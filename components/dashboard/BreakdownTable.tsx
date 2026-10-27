@@ -4,6 +4,7 @@ import { Fragment, useState } from "react";
 import { formatHours, formatPercent, projectLabel } from "@/lib/dashboard";
 import type { DashboardEmployee, DashboardProject, Named } from "@/lib/odoo";
 import type { Sheet } from "@/lib/xlsx";
+import type { Column } from "./ColumnPicker";
 
 /** Una fila del detalle (empleado o departamento) con el reparto de sus horas que se despliega al hacer clic. */
 export type Group = {
@@ -41,6 +42,13 @@ export const BY_DEPARTMENT: Grouping = {
   itemHeader: "Empleado",
   hint: "Haz clic en un departamento para ver sus horas por empleado.",
 };
+
+/** Columnas que se pueden ocultar (todas menos la primera). */
+export const groupingColumns = (grouping: Grouping): Column[] => [
+  ...grouping.columns.map((column) => ({ key: column.header, label: column.header })),
+  { key: "hours", label: "Horas" },
+  { key: "share", label: "%" },
+];
 
 const NO_DEPARTMENT = "Sin departamento";
 const byHours = <T extends { hours: number }>(items: T[]) => items.sort((a, b) => b.hours - a.hours);
@@ -122,13 +130,19 @@ export default function BreakdownTable({
   grouping,
   groups,
   total,
+  hidden,
 }: {
   grouping: Grouping;
   groups: Group[];
   total: number;
+  hidden: string[];
 }) {
   const [openId, setOpenId] = useState<number | null>(null);
   const toggle = (id: number) => setOpenId((current) => (current === id ? null : id));
+  const shows = (key: string) => !hidden.includes(key);
+  const columns = grouping.columns
+    .map((column, index) => ({ ...column, index }))
+    .filter((column) => shows(column.header));
 
   return (
     <div className="table-wrap">
@@ -136,13 +150,13 @@ export default function BreakdownTable({
         <thead>
           <tr>
             <th>{grouping.header}</th>
-            {grouping.columns.map((column) => (
+            {columns.map((column) => (
               <th key={column.header} className={column.num ? "num" : undefined}>
                 {column.header}
               </th>
             ))}
-            <th className="num">Horas</th>
-            <th className="num">%</th>
+            {shows("hours") && <th className="num">Horas</th>}
+            {shows("share") && <th className="num">%</th>}
           </tr>
         </thead>
         <tbody>
@@ -168,17 +182,17 @@ export default function BreakdownTable({
                     </span>
                     {group.name}
                   </td>
-                  {grouping.columns.map((column, index) => (
+                  {columns.map((column) => (
                     <td key={column.header} className={column.num ? "num" : undefined}>
-                      {group.columns[index] ?? "—"}
+                      {group.columns[column.index] ?? "—"}
                     </td>
                   ))}
-                  <td className="num">{formatHours(group.hours)}</td>
-                  <td className="num">{formatPercent(group.hours / (total || 1))}</td>
+                  {shows("hours") && <td className="num">{formatHours(group.hours)}</td>}
+                  {shows("share") && <td className="num">{formatPercent(group.hours / (total || 1))}</td>}
                 </tr>
                 {open && (
                   <tr className="detail-row">
-                    <td colSpan={grouping.columns.length + 3}>
+                    <td colSpan={columns.length + 1 + Number(shows("hours")) + Number(shows("share"))}>
                       <div className="table-wrap detail-wrap">
                         <table className="grid-table data-table">
                           <thead>

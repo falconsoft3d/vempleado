@@ -7,8 +7,10 @@ import BreakdownTable, {
   BY_EMPLOYEE,
   departmentGroups,
   employeeGroups,
+  groupingColumns,
   groupSheets,
 } from "@/components/dashboard/BreakdownTable";
+import ColumnPicker, { useHiddenColumns, type Column } from "@/components/dashboard/ColumnPicker";
 import EmployeeLines, { yesNo } from "@/components/dashboard/EmployeeLines";
 import { formatHours, formatPercent } from "@/lib/dashboard";
 import { formatDate } from "@/lib/imputation";
@@ -33,6 +35,20 @@ const VIEWS: { key: View; label: string }[] = [
   { key: "employee", label: "Por empleado" },
   { key: "department", label: "Por departamento" },
 ];
+/** Columnas de cada vista que se pueden ocultar, y el nombre de la primera (fija). */
+const COLUMNS: Record<View, { fixed: string; columns: Column[] }> = {
+  project: {
+    fixed: "Obra",
+    columns: [
+      { key: "client", label: "Cliente" },
+      { key: "cost_center", label: "Centro de costos" },
+      { key: "hours", label: "Horas" },
+      { key: "share", label: "%" },
+    ],
+  },
+  employee: { fixed: BY_EMPLOYEE.header, columns: groupingColumns(BY_EMPLOYEE) },
+  department: { fixed: BY_DEPARTMENT.header, columns: groupingColumns(BY_DEPARTMENT) },
+};
 
 const DETAIL_HEADER = [
   "Fecha",
@@ -64,6 +80,9 @@ const detailRow = (line: DashboardLine): Cell[] => [
 export default function ProjectTable(props: Props) {
   const { projects, total, from, to, employeeIds, departmentId, jobId, employees, departments } = props;
   const [view, setView] = useState<View>("project");
+  const [hiddenColumns, toggleColumn] = useHiddenColumns();
+  const hidden = hiddenColumns[view] ?? [];
+  const shows = (key: string) => !hidden.includes(key);
   const byEmployee = useMemo(
     () => employeeGroups(projects, employees, departments),
     [projects, employees, departments],
@@ -162,6 +181,13 @@ export default function ProjectTable(props: Props) {
               </button>
             ))}
           </div>
+          <ColumnPicker
+            key={view}
+            fixed={COLUMNS[view].fixed}
+            columns={COLUMNS[view].columns}
+            hidden={hidden}
+            onToggle={(column) => toggleColumn(view, column)}
+          />
           <button type="button" className="btn btn-secondary" onClick={exportView}>
             Exportar a Excel
           </button>
@@ -170,12 +196,12 @@ export default function ProjectTable(props: Props) {
       {view === "employee" ? (
         <>
           <p className="muted small">{BY_EMPLOYEE.hint}</p>
-          <BreakdownTable grouping={BY_EMPLOYEE} groups={byEmployee} total={total} />
+          <BreakdownTable grouping={BY_EMPLOYEE} groups={byEmployee} total={total} hidden={hidden} />
         </>
       ) : view === "department" ? (
         <>
           <p className="muted small">{BY_DEPARTMENT.hint}</p>
-          <BreakdownTable grouping={BY_DEPARTMENT} groups={byDepartment} total={total} />
+          <BreakdownTable grouping={BY_DEPARTMENT} groups={byDepartment} total={total} hidden={hidden} />
         </>
       ) : (
         <>
@@ -188,10 +214,10 @@ export default function ProjectTable(props: Props) {
               <thead>
                 <tr>
                   <th>Obra</th>
-                  <th>Cliente</th>
-                  <th>Centro de costos</th>
-                  <th className="num">Horas</th>
-                  <th className="num">%</th>
+                  {shows("client") && <th>Cliente</th>}
+                  {shows("cost_center") && <th>Centro de costos</th>}
+                  {shows("hours") && <th className="num">Horas</th>}
+                  {shows("share") && <th className="num">%</th>}
                 </tr>
               </thead>
               <tbody>
@@ -218,14 +244,14 @@ export default function ProjectTable(props: Props) {
                           </span>
                           [{project.code}] {project.name}
                         </td>
-                        <td>{project.client ?? "—"}</td>
-                        <td>{project.cost_center ?? "—"}</td>
-                        <td className="num">{formatHours(project.hours)}</td>
-                        <td className="num">{formatPercent(project.hours / total)}</td>
+                        {shows("client") && <td>{project.client ?? "—"}</td>}
+                        {shows("cost_center") && <td>{project.cost_center ?? "—"}</td>}
+                        {shows("hours") && <td className="num">{formatHours(project.hours)}</td>}
+                        {shows("share") && <td className="num">{formatPercent(project.hours / total)}</td>}
                       </tr>
                       {open && (
                         <tr className="detail-row">
-                          <td colSpan={5}>
+                          <td colSpan={1 + COLUMNS.project.columns.filter((column) => shows(column.key)).length}>
                             {!projectLines ? (
                               <p className="muted small">{loading ? "Cargando horas…" : ""}</p>
                             ) : !projectLines.length ? (
