@@ -7,7 +7,14 @@ import { formatDate } from "@/lib/imputation";
 import type { DashboardLine, DashboardProject } from "@/lib/odoo";
 import { downloadXlsx, type Cell } from "@/lib/xlsx";
 
-type Props = { projects: DashboardProject[]; total: number; from: string; to: string; employeeIds: number[] };
+type Props = {
+  projects: DashboardProject[];
+  total: number;
+  from: string;
+  to: string;
+  employeeIds: number[];
+  departmentId: number | null;
+};
 
 const yesNo = (value: boolean) => (value ? "Sí" : "");
 
@@ -25,15 +32,15 @@ const detailRow = (line: DashboardLine): Cell[] => [
 ];
 
 /** Detalle por obra: exportable a Excel; al hacer clic en una obra se despliegan sus líneas de horas. */
-export default function ProjectTable({ projects, total, from, to, employeeIds }: Props) {
+export default function ProjectTable({ projects, total, from, to, employeeIds, departmentId }: Props) {
   const [openId, setOpenId] = useState<number | null>(null);
   const [lines, setLines] = useState<Record<number, DashboardLine[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, startLoading] = useTransition();
   const period = `${from}_${to}`;
 
-  // Al cambiar el filtro (fechas o empleados) el detalle cargado ya no vale
-  const scope = `${period}|${employeeIds.join(",")}`;
+  // Al cambiar el filtro (fechas, departamento o empleados) el detalle cargado ya no vale
+  const scope = `${period}|${departmentId ?? ""}|${employeeIds.join(",")}`;
   const [loadedScope, setLoadedScope] = useState(scope);
   if (loadedScope !== scope) {
     setLoadedScope(scope);
@@ -50,7 +57,7 @@ export default function ProjectTable({ projects, total, from, to, employeeIds }:
     setOpenId(project.id);
     if (lines[project.id]) return;
     startLoading(async () => {
-      const result = await dashboardDetailAction(project.id, from, to, employeeIds);
+      const result = await dashboardDetailAction(project.id, from, to, employeeIds, departmentId);
       if (!result.ok) {
         setError(result.error);
         return;

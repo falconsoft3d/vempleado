@@ -147,8 +147,12 @@ export type DashboardData = {
   date_to: string;
   total_hours: number;
   projects: DashboardProject[];
+  /** Empleados visibles: los del departamento filtrado o, sin filtro, todos los de la compañía. */
   employees: Named[];
   employee_ids: number[];
+  // Opcionales: Odoo los envía desde la versión con el filtro por departamento
+  departments?: Named[];
+  department_id?: number | null;
   // Opcionales: Odoo los envía desde la versión con el KPI de horas extra
   overtime_50?: number;
   overtime_100?: number;
@@ -183,6 +187,7 @@ export function getDashboardDetail(
   dateFrom: string,
   dateTo: string,
   employeeIds: number[],
+  departmentId: number | null,
 ) {
   return call<{ lines: DashboardLine[] }>(baseUrl, "/bim/portal/dashboard/detail", {
     token,
@@ -190,14 +195,23 @@ export function getDashboardDetail(
     date_from: dateFrom,
     date_to: dateTo,
     employee_ids: employeeIds,
+    department_id: departmentId,
   });
 }
 
-export function getDashboard(baseUrl: string, token: string, dateFrom: string, dateTo: string, employeeIds: number[]) {
+export function getDashboard(
+  baseUrl: string,
+  token: string,
+  dateFrom: string,
+  dateTo: string,
+  employeeIds: number[],
+  departmentId: number | null,
+) {
   return call<DashboardData>(baseUrl, "/bim/portal/dashboard", {
     token,
     date_from: dateFrom,
     date_to: dateTo,
     employee_ids: employeeIds,
+    department_id: departmentId,
   });
 }
