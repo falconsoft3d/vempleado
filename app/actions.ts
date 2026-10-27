@@ -97,6 +97,9 @@ export async function dashboardDetailAction(
   dateTo: string,
   employeeIds: number[],
   departmentId: number | null,
+  jobId: number | null,
 ) {
-  return withSession((s) => odoo.getDashboardDetail(s.url, s.token, projectId, dateFrom, dateTo, employeeIds, departmentId));
+  return withSession((s) =>
+    odoo.getDashboardDetail(s.url, s.token, projectId, dateFrom, dateTo, employeeIds, departmentId, jobId),
+  );
 }

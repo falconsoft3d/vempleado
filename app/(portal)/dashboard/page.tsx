@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ConcentrationBars from "@/components/dashboard/ConcentrationBars";
-import DepartmentFilter from "@/components/dashboard/DepartmentFilter";
 import EffortSection from "@/components/dashboard/EffortSection";
+import FilterSelect from "@/components/dashboard/FilterSelect";
 import KpiRow from "@/components/dashboard/KpiRow";
 import ProjectTable from "@/components/dashboard/ProjectTable";
 import TopProjects from "@/components/dashboard/TopProjects";
@@ -12,14 +12,22 @@ import { requireEmployee } from "@/lib/session";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-type Params = { from?: string; to?: string; dept?: string; emp?: string | string[] };
+type Params = { from?: string; to?: string; dept?: string; job?: string; emp?: string | string[] };
+type Filters = { departmentId: number | null; jobId: number | null };
 
-/** Query string del dashboard; sin departamento ni empleados = todos. */
-function dashboardHref(from: string, to: string, departmentId: number | null, employeeIds: number[]) {
+/** Query string del dashboard; sin departamento, puesto ni empleados = todos. */
+function dashboardHref(from: string, to: string, filters: Filters, employeeIds: number[]) {
   const query = new URLSearchParams({ from, to });
-  if (departmentId) query.set("dept", String(departmentId));
+  if (filters.departmentId) query.set("dept", String(filters.departmentId));
+  if (filters.jobId) query.set("job", String(filters.jobId));
   for (const id of employeeIds) query.append("emp", String(id));
   return `/dashboard?${query}`;
+}
+
+/** Id positivo de un parámetro de la URL, o null. */
+function idParam(value: string | undefined) {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -30,13 +38,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const from = params.from && ISO_DATE.test(params.from) ? params.from : yearRange.from;
   const to = params.to && ISO_DATE.test(params.to) ? params.to : yearRange.to;
   const requestedIds = [params.emp ?? []].flat().map(Number).filter((id) => Number.isInteger(id) && id > 0);
-  const requestedDepartment = Number(params.dept);
-  const departmentParam = Number.isInteger(requestedDepartment) && requestedDepartment > 0 ? requestedDepartment : null;
 
   let data: DashboardData | null = null;
   let error: string | null = null;
   try {
-    data = await getDashboard(session.url, session.token, from, to, requestedIds, departmentParam);
+    data = await getDashboard(
+      session.url,
+      session.token,
+      from,
+      to,
+      requestedIds,
+      idParam(params.dept),
+      idParam(params.job),
+    );
   } catch (e) {
     if (!(e instanceof OdooError)) throw e;
     error = e.message;
@@ -45,6 +59,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const departments = data?.departments ?? [];
   const departmentId = data?.department_id ?? null;
   const departmentName = departments.find((department) => department.id === departmentId)?.name;
+  const jobs = data?.jobs ?? [];
+  const jobId = data?.job_id ?? null;
+  const jobName = jobs.find((job) => job.id === jobId)?.name;
+  const filters = { departmentId, jobId };
   const employees = data?.employees ?? [];
   const selectedIds = data?.employee_ids ?? [];
   const selectedNames = employees.filter((employee) => selectedIds.includes(employee.id)).map((employee) => employee.name);
@@ -55,7 +73,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     : selectedNames.length <= 3
       ? selectedNames.join(", ")
       : `${selectedNames.length} empleados`;
-  const scope = departmentName ? `${departmentName} · ${employeeScope}` : employeeScope;
+  const scope = [departmentName, jobName, employeeScope].filter(Boolean).join(" · ");
   const projects = data?.projects ?? [];
   const total = data?.total_hours ?? 0;
   const topShare = projects.slice(0, 3).reduce((acc, project) => acc + project.hours, 0) / (total || 1);
@@ -79,7 +97,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             Hasta
             <input type="date" name="to" defaultValue={to} required />
           </label>
-          {(departments.length > 1 || departmentId) && <DepartmentFilter departments={departments} value={departmentId} />}
+          {(departments.length > 1 || departmentId) && (
+            <FilterSelect label="Departamento" name="dept" options={departments} value={departmentId} resets={["job"]} />
+          )}
+          {(jobs.length > 1 || jobId) && <FilterSelect label="Puesto de trabajo" name="job" options={jobs} value={jobId} />}
           {employees.length > 1 && (
             <details className="employee-filter">
               <summary>
@@ -97,7 +118,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </label>
                 ))}
                 {selectedIds.length > 0 && (
-                  <Link href={dashboardHref(from, to, departmentId, [])} className="small">
+                  <Link href={dashboardHref(from, to, filters, [])} className="small">
                     Ver todos los empleados
                   </Link>
                 )}
@@ -112,7 +133,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {ranges.map((range) => (
             <Link
               key={range.label}
-              href={dashboardHref(range.from, range.to, departmentId, selectedIds)}
+              href={dashboardHref(range.from, range.to, filters, selectedIds)}
               className={range.from === from && range.to === to ? "preset active" : "preset"}
             >
               {range.label}
@@ -157,6 +178,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             to={to}
             employeeIds={selectedIds}
             departmentId={departmentId}
+            jobId={jobId}
             employees={employees}
             departments={departments}
           />

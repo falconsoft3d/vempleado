@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/app/actions";
 import Avatar from "./Avatar";
+import ThemeToggle from "./ThemeToggle";
 
 const MENU = [
   { href: "/", label: "Inicio", icon: "M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" },
@@ -37,6 +38,7 @@ export default function Sidebar({ name, image, company }: { name: string; image:
           <strong>{name}</strong>
           {company && <span>{company}</span>}
         </div>
+        <ThemeToggle />
         <form action={logoutAction}>
           <button type="submit" className="btn-icon" title="Cerrar sesión" aria-label="Cerrar sesión">
             <svg viewBox="0 0 24 24" aria-hidden="true">

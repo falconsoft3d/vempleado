@@ -22,6 +22,7 @@ type Props = {
   to: string;
   employeeIds: number[];
   departmentId: number | null;
+  jobId: number | null;
   employees: DashboardEmployee[];
   departments: Named[];
 };
@@ -61,7 +62,7 @@ const detailRow = (line: DashboardLine): Cell[] => [
  * Al hacer clic en una obra se despliegan sus horas por empleado (y en cada empleado, sus líneas); en un empleado, sus obras; en un departamento, sus empleados.
  */
 export default function ProjectTable(props: Props) {
-  const { projects, total, from, to, employeeIds, departmentId, employees, departments } = props;
+  const { projects, total, from, to, employeeIds, departmentId, jobId, employees, departments } = props;
   const [view, setView] = useState<View>("project");
   const byEmployee = useMemo(
     () => employeeGroups(projects, employees, departments),
@@ -77,8 +78,8 @@ export default function ProjectTable(props: Props) {
   const [loading, startLoading] = useTransition();
   const period = `${from}_${to}`;
 
-  // Al cambiar el filtro (fechas, departamento o empleados) el detalle cargado ya no vale
-  const scope = `${period}|${departmentId ?? ""}|${employeeIds.join(",")}`;
+  // Al cambiar el filtro (fechas, departamento, puesto o empleados) el detalle cargado ya no vale
+  const scope = `${period}|${departmentId ?? ""}|${jobId ?? ""}|${employeeIds.join(",")}`;
   const [loadedScope, setLoadedScope] = useState(scope);
   if (loadedScope !== scope) {
     setLoadedScope(scope);
@@ -95,7 +96,7 @@ export default function ProjectTable(props: Props) {
     setOpenId(project.id);
     if (lines[project.id]) return;
     startLoading(async () => {
-      const result = await dashboardDetailAction(project.id, from, to, employeeIds, departmentId);
+      const result = await dashboardDetailAction(project.id, from, to, employeeIds, departmentId, jobId);
       if (!result.ok) {
         setError(result.error);
         return;

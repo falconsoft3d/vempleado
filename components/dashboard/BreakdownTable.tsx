@@ -9,25 +9,35 @@ import type { Sheet } from "@/lib/xlsx";
 export type Group = {
   id: number;
   name: string;
-  extra: string | null;
+  /** Valores de las columnas propias de la agrupación (ver Grouping.columns). */
+  columns: (string | number | null)[];
   hours: number;
   items: (Named & { hours: number })[];
 };
 
 /** Cómo se muestra cada agrupación: encabezados de la tabla, del desplegable y del Excel. */
-export type Grouping = { title: string; header: string; extraHeader: string; itemHeader: string; hint: string };
+export type Grouping = {
+  title: string;
+  header: string;
+  columns: { header: string; num?: boolean; width: number }[];
+  itemHeader: string;
+  hint: string;
+};
 
 export const BY_EMPLOYEE: Grouping = {
   title: "Detalle por empleado",
   header: "Empleado",
-  extraHeader: "Departamento",
+  columns: [
+    { header: "Departamento", width: 28 },
+    { header: "Puesto de trabajo", width: 28 },
+  ],
   itemHeader: "Obra",
   hint: "Haz clic en un empleado para ver sus horas por obra.",
 };
 export const BY_DEPARTMENT: Grouping = {
   title: "Detalle por departamento",
   header: "Departamento",
-  extraHeader: "Empleados",
+  columns: [{ header: "Empleados", num: true, width: 12 }],
   itemHeader: "Empleado",
   hint: "Haz clic en un departamento para ver sus horas por empleado.",
 };
@@ -39,6 +49,7 @@ const byHours = <T extends { hours: number }>(items: T[]) => items.sort((a, b) =
 export function employeeGroups(projects: DashboardProject[], employees: DashboardEmployee[], departments: Named[]) {
   const departmentName = new Map(departments.map((department) => [department.id, department.name]));
   const employeeDepartment = new Map(employees.map((employee) => [employee.id, employee.department_id ?? null]));
+  const jobs = new Map(employees.map((employee) => [employee.id, employee.job]));
   const groups = new Map<number, Group>();
   for (const project of projects) {
     for (const employee of project.employees) {
@@ -46,7 +57,7 @@ export function employeeGroups(projects: DashboardProject[], employees: Dashboar
       const group = groups.get(employee.id) ?? {
         id: employee.id,
         name: employee.name,
-        extra: (departmentId && departmentName.get(departmentId)) || NO_DEPARTMENT,
+        columns: [(departmentId && departmentName.get(departmentId)) || NO_DEPARTMENT, jobs.get(employee.id) ?? null],
         hours: 0,
         items: [],
       };
@@ -68,7 +79,7 @@ export function departmentGroups(employeeRows: Group[], employees: DashboardEmpl
     const group = groups.get(departmentId) ?? {
       id: departmentId,
       name: departmentName.get(departmentId) ?? NO_DEPARTMENT,
-      extra: null,
+      columns: [],
       hours: 0,
       items: [],
     };
@@ -76,7 +87,7 @@ export function departmentGroups(employeeRows: Group[], employees: DashboardEmpl
     group.items.push({ id: row.id, name: row.name, hours: row.hours });
     groups.set(departmentId, group);
   }
-  return byHours([...groups.values()]).map((group) => ({ ...group, extra: String(group.items.length) }));
+  return byHours([...groups.values()]).map((group) => ({ ...group, columns: [group.items.length] }));
 }
 
 const share = (hours: number, total: number) => Math.round((hours / (total || 1)) * 1000) / 10;
@@ -86,11 +97,11 @@ export function groupSheets(grouping: Grouping, groups: Group[], total: number):
   return [
     {
       name: grouping.title,
-      widths: [36, 28, 10, 8],
+      widths: [36, ...grouping.columns.map((column) => column.width), 10, 8],
       rows: [
-        [grouping.header, grouping.extraHeader, "Horas", "%"],
-        ...groups.map((group) => [group.name, group.extra, group.hours, share(group.hours, total)]),
-        ["Total", "", total, 100],
+        [grouping.header, ...grouping.columns.map((column) => column.header), "Horas", "%"],
+        ...groups.map((group) => [group.name, ...group.columns, group.hours, share(group.hours, total)]),
+        ["Total", ...grouping.columns.map(() => ""), total, 100],
       ],
     },
     {
@@ -125,7 +136,11 @@ export default function BreakdownTable({
         <thead>
           <tr>
             <th>{grouping.header}</th>
-            <th className={grouping === BY_DEPARTMENT ? "num" : undefined}>{grouping.extraHeader}</th>
+            {grouping.columns.map((column) => (
+              <th key={column.header} className={column.num ? "num" : undefined}>
+                {column.header}
+              </th>
+            ))}
             <th className="num">Horas</th>
             <th className="num">%</th>
           </tr>
@@ -153,13 +168,17 @@ export default function BreakdownTable({
                     </span>
                     {group.name}
                   </td>
-                  <td className={grouping === BY_DEPARTMENT ? "num" : undefined}>{group.extra ?? "—"}</td>
+                  {grouping.columns.map((column, index) => (
+                    <td key={column.header} className={column.num ? "num" : undefined}>
+                      {group.columns[index] ?? "—"}
+                    </td>
+                  ))}
                   <td className="num">{formatHours(group.hours)}</td>
                   <td className="num">{formatPercent(group.hours / (total || 1))}</td>
                 </tr>
                 {open && (
                   <tr className="detail-row">
-                    <td colSpan={4}>
+                    <td colSpan={grouping.columns.length + 3}>
                       <div className="table-wrap detail-wrap">
                         <table className="grid-table data-table">
                           <thead>

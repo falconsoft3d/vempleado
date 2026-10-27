@@ -153,6 +153,9 @@ export type DashboardData = {
   // Opcionales: Odoo los envía desde la versión con el filtro por departamento
   departments?: Named[];
   department_id?: number | null;
+  // Opcionales: Odoo los envía desde la versión con el filtro por puesto de trabajo
+  jobs?: Named[];
+  job_id?: number | null;
   // Opcionales: Odoo los envía desde la versión con el KPI de horas extra
   overtime_50?: number;
   overtime_100?: number;
@@ -161,8 +164,8 @@ export type DashboardData = {
   hs_nocturna_days?: number;
   day_flag_employees?: DayFlagEmployee[];
 };
-/** Empleado visible en el dashboard; department_id llega desde la versión con el detalle por departamento. */
-export type DashboardEmployee = Named & { department_id?: number | null };
+/** Empleado visible en el dashboard; department_id y job llegan desde las versiones con esos detalles. */
+export type DashboardEmployee = Named & { department_id?: number | null; job?: string | null };
 /** Días con Plus Distancia y con HS Nocturna de un empleado en el intervalo. */
 export type DayFlagEmployee = Named & { plus_distancia: number; hs_nocturna: number };
 /** Horas al 50% y al 100% de un empleado en el intervalo. */
@@ -190,6 +193,7 @@ export function getDashboardDetail(
   dateTo: string,
   employeeIds: number[],
   departmentId: number | null,
+  jobId: number | null,
 ) {
   return call<{ lines: DashboardLine[] }>(baseUrl, "/bim/portal/dashboard/detail", {
     token,
@@ -198,6 +202,7 @@ export function getDashboardDetail(
     date_to: dateTo,
     employee_ids: employeeIds,
     department_id: departmentId,
+    job_id: jobId,
   });
 }
 
@@ -208,6 +213,7 @@ export function getDashboard(
   dateTo: string,
   employeeIds: number[],
   departmentId: number | null,
+  jobId: number | null,
 ) {
   return call<DashboardData>(baseUrl, "/bim/portal/dashboard", {
     token,
@@ -215,5 +221,6 @@ export function getDashboard(
     date_to: dateTo,
     employee_ids: employeeIds,
     department_id: departmentId,
+    job_id: jobId,
   });
 }
