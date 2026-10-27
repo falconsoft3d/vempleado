@@ -1,10 +1,18 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { dashboardDetailAction } from "@/app/actions";
+import BreakdownTable, {
+  BY_DEPARTMENT,
+  BY_EMPLOYEE,
+  departmentGroups,
+  employeeGroups,
+  groupSheets,
+} from "@/components/dashboard/BreakdownTable";
+import EmployeeLines, { yesNo } from "@/components/dashboard/EmployeeLines";
 import { formatHours, formatPercent } from "@/lib/dashboard";
 import { formatDate } from "@/lib/imputation";
-import type { DashboardLine, DashboardProject } from "@/lib/odoo";
+import type { DashboardEmployee, DashboardLine, DashboardProject, Named } from "@/lib/odoo";
 import { downloadXlsx, type Cell } from "@/lib/xlsx";
 
 type Props = {
@@ -14,11 +22,28 @@ type Props = {
   to: string;
   employeeIds: number[];
   departmentId: number | null;
+  employees: DashboardEmployee[];
+  departments: Named[];
 };
 
-const yesNo = (value: boolean) => (value ? "Sí" : "");
+type View = "project" | "employee" | "department";
+const VIEWS: { key: View; label: string }[] = [
+  { key: "project", label: "Por obra" },
+  { key: "employee", label: "Por empleado" },
+  { key: "department", label: "Por departamento" },
+];
 
-const DETAIL_HEADER = ["Fecha", "Empleado", "Tipo hora", "Horas", "Sitio Veolia", "Plus Distancia", "HS Nocturna", "Notas", "Imputado por"];
+const DETAIL_HEADER = [
+  "Fecha",
+  "Empleado",
+  "Tipo hora",
+  "Horas",
+  "Sitio Veolia",
+  "Plus Distancia",
+  "HS Nocturna",
+  "Notas",
+  "Imputado por",
+];
 const detailRow = (line: DashboardLine): Cell[] => [
   formatDate(line.date),
   line.employee,
@@ -31,8 +56,21 @@ const detailRow = (line: DashboardLine): Cell[] => [
   line.imputed_by,
 ];
 
-/** Detalle por obra: exportable a Excel; al hacer clic en una obra se despliegan sus líneas de horas. */
-export default function ProjectTable({ projects, total, from, to, employeeIds, departmentId }: Props) {
+/**
+ * Detalle por obra, empleado o departamento, exportable a Excel.
+ * Al hacer clic en una obra se despliegan sus horas por empleado (y en cada empleado, sus líneas); en un empleado, sus obras; en un departamento, sus empleados.
+ */
+export default function ProjectTable(props: Props) {
+  const { projects, total, from, to, employeeIds, departmentId, employees, departments } = props;
+  const [view, setView] = useState<View>("project");
+  const byEmployee = useMemo(
+    () => employeeGroups(projects, employees, departments),
+    [projects, employees, departments],
+  );
+  const byDepartment = useMemo(
+    () => departmentGroups(byEmployee, employees, departments),
+    [byEmployee, employees, departments],
+  );
   const [openId, setOpenId] = useState<number | null>(null);
   const [lines, setLines] = useState<Record<number, DashboardLine[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +104,12 @@ export default function ProjectTable({ projects, total, from, to, employeeIds, d
     });
   }
 
-  function exportProjects() {
+  function exportView() {
+    if (view === "employee")
+      return downloadXlsx(`detalle-empleados_${period}`, groupSheets(BY_EMPLOYEE, byEmployee, total));
+    if (view === "department") {
+      return downloadXlsx(`detalle-departamentos_${period}`, groupSheets(BY_DEPARTMENT, byDepartment, total));
+    }
     downloadXlsx(`detalle-obras_${period}`, [
       {
         name: "Detalle por obra",
@@ -101,109 +144,120 @@ export default function ProjectTable({ projects, total, from, to, employeeIds, d
   return (
     <section className="card chart-card">
       <div className="chart-head">
-        <h2>Detalle por obra</h2>
-        <button type="button" className="btn btn-secondary" onClick={exportProjects}>
-          Exportar a Excel
-        </button>
+        <h2>
+          {view === "employee" ? BY_EMPLOYEE.title : view === "department" ? BY_DEPARTMENT.title : "Detalle por obra"}
+        </h2>
+        <div className="chart-actions">
+          <div className="presets" role="group" aria-label="Agrupar el detalle">
+            {VIEWS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={view === option.key ? "preset active" : "preset"}
+                aria-pressed={view === option.key}
+                onClick={() => setView(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="btn btn-secondary" onClick={exportView}>
+            Exportar a Excel
+          </button>
+        </div>
       </div>
-      <p className="muted small">Haz clic en una obra para ver todas las horas cargadas.</p>
-      {error && <p className="alert alert-error">{error}</p>}
-      <div className="table-wrap">
-        <table className="grid-table data-table">
-          <thead>
-            <tr>
-              <th>Obra</th>
-              <th>Cliente</th>
-              <th>Centro de costos</th>
-              <th className="num">Horas</th>
-              <th className="num">%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {projects.map((project) => {
-              const open = openId === project.id;
-              const projectLines = lines[project.id];
-              return (
-                <Fragment key={project.id}>
-                  <tr
-                    className={open ? "project-row open" : "project-row"}
-                    tabIndex={0}
-                    aria-expanded={open}
-                    onClick={() => toggle(project)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        toggle(project);
-                      }
-                    }}
-                  >
-                    <td>
-                      <span className="caret" aria-hidden="true">
-                        {open ? "▾" : "▸"}
-                      </span>
-                      [{project.code}] {project.name}
-                    </td>
-                    <td>{project.client ?? "—"}</td>
-                    <td>{project.cost_center ?? "—"}</td>
-                    <td className="num">{formatHours(project.hours)}</td>
-                    <td className="num">{formatPercent(project.hours / total)}</td>
-                  </tr>
-                  {open && (
-                    <tr className="detail-row">
-                      <td colSpan={5}>
-                        {!projectLines ? (
-                          <p className="muted small">{loading ? "Cargando horas…" : ""}</p>
-                        ) : !projectLines.length ? (
-                          <p className="muted small">No hay líneas de horas para esta obra.</p>
-                        ) : (
-                          <>
-                            <div className="detail-head">
-                              <span className="muted small">
-                                {projectLines.length} líneas · {formatHours(projectLines.reduce((acc, line) => acc + line.hours, 0))} h
-                              </span>
-                              <button type="button" className="btn btn-secondary" onClick={() => exportDetail(project)}>
-                                Exportar horas a Excel
-                              </button>
-                            </div>
-                            <div className="table-wrap detail-wrap">
-                              <table className="grid-table data-table">
-                                <thead>
-                                  <tr>
-                                    {DETAIL_HEADER.map((title) => (
-                                      <th key={title} className={title === "Horas" ? "num" : undefined}>
-                                        {title}
-                                      </th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {projectLines.map((line) => (
-                                    <tr key={line.id}>
-                                      <td>{formatDate(line.date)}</td>
-                                      <td>{line.employee}</td>
-                                      <td>{line.hour_type}</td>
-                                      <td className="num">{formatHours(line.hours)}</td>
-                                      <td>{line.site ?? "—"}</td>
-                                      <td>{yesNo(line.plus_distancia) || "—"}</td>
-                                      <td>{yesNo(line.hs_nocturna) || "—"}</td>
-                                      <td className="note-cell">{line.note ?? "—"}</td>
-                                      <td>{line.imputed_by ?? "—"}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {view === "employee" ? (
+        <>
+          <p className="muted small">{BY_EMPLOYEE.hint}</p>
+          <BreakdownTable grouping={BY_EMPLOYEE} groups={byEmployee} total={total} />
+        </>
+      ) : view === "department" ? (
+        <>
+          <p className="muted small">{BY_DEPARTMENT.hint}</p>
+          <BreakdownTable grouping={BY_DEPARTMENT} groups={byDepartment} total={total} />
+        </>
+      ) : (
+        <>
+          <p className="muted small">
+            Haz clic en una obra para ver sus horas por empleado, y en un empleado para ver sus líneas.
+          </p>
+          {error && <p className="alert alert-error">{error}</p>}
+          <div className="table-wrap">
+            <table className="grid-table data-table">
+              <thead>
+                <tr>
+                  <th>Obra</th>
+                  <th>Cliente</th>
+                  <th>Centro de costos</th>
+                  <th className="num">Horas</th>
+                  <th className="num">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((project) => {
+                  const open = openId === project.id;
+                  const projectLines = lines[project.id];
+                  return (
+                    <Fragment key={project.id}>
+                      <tr
+                        className={open ? "project-row open" : "project-row"}
+                        tabIndex={0}
+                        aria-expanded={open}
+                        onClick={() => toggle(project)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggle(project);
+                          }
+                        }}
+                      >
+                        <td>
+                          <span className="caret" aria-hidden="true">
+                            {open ? "▾" : "▸"}
+                          </span>
+                          [{project.code}] {project.name}
+                        </td>
+                        <td>{project.client ?? "—"}</td>
+                        <td>{project.cost_center ?? "—"}</td>
+                        <td className="num">{formatHours(project.hours)}</td>
+                        <td className="num">{formatPercent(project.hours / total)}</td>
+                      </tr>
+                      {open && (
+                        <tr className="detail-row">
+                          <td colSpan={5}>
+                            {!projectLines ? (
+                              <p className="muted small">{loading ? "Cargando horas…" : ""}</p>
+                            ) : !projectLines.length ? (
+                              <p className="muted small">No hay líneas de horas para esta obra.</p>
+                            ) : (
+                              <>
+                                <div className="detail-head">
+                                  <span className="muted small">
+                                    {projectLines.length} líneas ·{" "}
+                                    {formatHours(projectLines.reduce((acc, line) => acc + line.hours, 0))} h
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={() => exportDetail(project)}
+                                  >
+                                    Exportar horas a Excel
+                                  </button>
+                                </div>
+                                <EmployeeLines lines={projectLines} />
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   );
 }

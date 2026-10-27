@@ -157,6 +157,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             to={to}
             employeeIds={selectedIds}
             departmentId={departmentId}
+            employees={employees}
+            departments={departments}
           />
         </>
       )}

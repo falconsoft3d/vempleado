@@ -148,7 +148,7 @@ export type DashboardData = {
   total_hours: number;
   projects: DashboardProject[];
   /** Empleados visibles: los del departamento filtrado o, sin filtro, todos los de la compañía. */
-  employees: Named[];
+  employees: DashboardEmployee[];
   employee_ids: number[];
   // Opcionales: Odoo los envía desde la versión con el filtro por departamento
   departments?: Named[];
@@ -161,6 +161,8 @@ export type DashboardData = {
   hs_nocturna_days?: number;
   day_flag_employees?: DayFlagEmployee[];
 };
+/** Empleado visible en el dashboard; department_id llega desde la versión con el detalle por departamento. */
+export type DashboardEmployee = Named & { department_id?: number | null };
 /** Días con Plus Distancia y con HS Nocturna de un empleado en el intervalo. */
 export type DayFlagEmployee = Named & { plus_distancia: number; hs_nocturna: number };
 /** Horas al 50% y al 100% de un empleado en el intervalo. */
