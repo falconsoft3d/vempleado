@@ -12,6 +12,7 @@ const LINE_HEADER = [
   "Tipo hora",
   "Horas",
   "Sitio Veolia",
+  "Oportunidad CRM",
   "Plus Distancia",
   "HS Nocturna",
   "Notas",
@@ -94,6 +95,7 @@ export default function EmployeeLines({ lines }: { lines: DashboardLine[] }) {
                                 <td>{line.hour_type}</td>
                                 <td className="num">{formatHours(line.hours)}</td>
                                 <td>{line.site ?? "—"}</td>
+                                <td>{line.opportunity ?? "—"}</td>
                                 <td>{yesNo(line.plus_distancia) || "—"}</td>
                                 <td>{yesNo(line.hs_nocturna) || "—"}</td>
                                 <td className="note-cell">{line.note ?? "—"}</td>

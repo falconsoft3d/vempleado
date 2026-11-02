@@ -137,26 +137,28 @@ export default function FilterStep({ options, filter, onChange, error, pending, 
         </div>
       </section>
 
-      <section className="card">
-        <h2>Intervalo de tiempo</h2>
-        <div className="form date-range">
-          <label>
-            Desde
-            <input type="date" value={filter.dateFrom} onChange={(event) => set({ dateFrom: event.target.value })} />
-          </label>
-          <label>
-            Hasta
-            <input type="date" value={filter.dateTo} onChange={(event) => set({ dateTo: event.target.value })} />
-          </label>
+      {/* Siguiente arriba del intervalo para que se vea sin hacer scroll */}
+      <div className="filter-side">
+        <div className="step-actions">
+          {error && <p className="alert alert-error">{error}</p>}
+          <button type="button" className="btn btn-primary" onClick={onNext} disabled={pending}>
+            {pending ? "Cargando…" : "Siguiente →"}
+          </button>
         </div>
-        <p className="muted small">Sábados, domingos y feriados aparecen en rojo y sin horas.</p>
-      </section>
-
-      <div className="step-actions">
-        {error && <p className="alert alert-error">{error}</p>}
-        <button type="button" className="btn btn-primary" onClick={onNext} disabled={pending}>
-          {pending ? "Cargando…" : "Siguiente →"}
-        </button>
+        <section className="card">
+          <h2>Intervalo de tiempo</h2>
+          <div className="form date-range">
+            <label>
+              Desde
+              <input type="date" value={filter.dateFrom} onChange={(event) => set({ dateFrom: event.target.value })} />
+            </label>
+            <label>
+              Hasta
+              <input type="date" value={filter.dateTo} onChange={(event) => set({ dateTo: event.target.value })} />
+            </label>
+          </div>
+          <p className="muted small">Sábados, domingos y feriados aparecen en rojo y sin horas.</p>
+        </section>
       </div>
     </div>
   );

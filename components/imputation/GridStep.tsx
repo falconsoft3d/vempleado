@@ -62,8 +62,13 @@ export default function GridStep({ options, filter, grid, onBack, onSaved }: Pro
   const commonSite = visibleRows.every((row) => row.siteId === visibleRows[0]?.siteId)
     ? visibleRows[0]?.siteId ?? null
     : null;
+  const commonOpportunity = visibleRows.every((row) => row.opportunityId === visibleRows[0]?.opportunityId)
+    ? visibleRows[0]?.opportunityId ?? null
+    : null;
   const siteRequired = (projectId: number | null) =>
     projects.some((project) => project.id === projectId && project.site_required);
+  const opportunityRequired = (projectId: number | null) =>
+    projects.some((project) => project.id === projectId && project.opportunity_required);
 
   useEffect(() => {
     try {
@@ -98,6 +103,17 @@ export default function GridStep({ options, filter, grid, onBack, onSaved }: Pro
   function setSiteForAll(siteId: number | null) {
     setRows((previous) =>
       previous.map((row) => (visibleIds.has(row.employeeId) && siteRequired(row.projectId) ? { ...row, siteId } : row)),
+    );
+    setInvalid(new Set());
+    setStatus({});
+  }
+
+  /** La oportunidad elegida en la cabecera se aplica a las líneas visibles cuyo proyecto la pide. */
+  function setOpportunityForAll(opportunityId: number | null) {
+    setRows((previous) =>
+      previous.map((row) =>
+        visibleIds.has(row.employeeId) && opportunityRequired(row.projectId) ? { ...row, opportunityId } : row,
+      ),
     );
     setInvalid(new Set());
     setStatus({});
@@ -138,11 +154,20 @@ export default function GridStep({ options, filter, grid, onBack, onSaved }: Pro
   function save() {
     const missing = rows.filter((row) => rowHasHours(row) && !row.projectId);
     const missingSite = rows.filter((row) => rowHasHours(row) && siteRequired(row.projectId) && !row.siteId);
+    const missingOpportunity = rows.filter(
+      (row) => rowHasHours(row) && opportunityRequired(row.projectId) && !row.opportunityId,
+    );
     // Las marcas y notas se graban en las líneas de horas: sin horas no hay dónde guardarlas
     const unflaggable = rows.filter(
       (row) => (row.plusDistancia || row.hsNocturna || row.note.trim()) && !rowHasHours(row),
     );
-    const wrong = missing.length ? missing : missingSite.length ? missingSite : unflaggable;
+    const wrong = missing.length
+      ? missing
+      : missingSite.length
+      ? missingSite
+      : missingOpportunity.length
+      ? missingOpportunity
+      : unflaggable;
     setInvalid(new Set(wrong.map((row) => row.key)));
     if (wrong.length) {
       if (!wrong.some((row) => visibleIds.has(row.employeeId))) setView(String(wrong[0].employeeId));
@@ -151,6 +176,8 @@ export default function GridStep({ options, filter, grid, onBack, onSaved }: Pro
           ? `Selecciona el proyecto en ${missing.length} día(s) con horas cargadas.`
           : missingSite.length
           ? `Selecciona el sitio Veolia en ${missingSite.length} día(s).`
+          : missingOpportunity.length
+          ? `Selecciona la oportunidad CRM en ${missingOpportunity.length} día(s).`
           : `Carga horas en ${unflaggable.length} día(s) con Plus Distancia, HS Nocturna o notas.`,
       });
       return;
@@ -257,6 +284,22 @@ export default function GridStep({ options, filter, grid, onBack, onSaved }: Pro
                     ))}
                   </select>
                 )}
+                {opportunityRequired(commonProject) && (
+                  <select
+                    className="header-select site-select"
+                    value={commonOpportunity ?? ""}
+                    aria-label="Oportunidad CRM para todas las líneas"
+                    title="Aplicar a todas las líneas"
+                    onChange={(event) => setOpportunityForAll(event.target.value ? Number(event.target.value) : null)}
+                  >
+                    <option value="">Oportunidad (todas las líneas)</option>
+                    {options.opportunities.map((opportunity) => (
+                      <option key={opportunity.id} value={opportunity.id}>
+                        {opportunity.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </th>
               {columns.map((type) => (
                 <th key={type.id} className="num">
@@ -324,6 +367,26 @@ export default function GridStep({ options, filter, grid, onBack, onSaved }: Pro
                           {options.sites.map((site) => (
                             <option key={site.id} value={site.id}>
                               {site.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {opportunityRequired(row.projectId) && (
+                        <select
+                          className="site-select"
+                          value={row.opportunityId ?? ""}
+                          aria-label={`Oportunidad CRM del ${formatDate(row.date)}`}
+                          onChange={(event) =>
+                            update(row.key, (current) => ({
+                              ...current,
+                              opportunityId: event.target.value ? Number(event.target.value) : null,
+                            }))
+                          }
+                        >
+                          <option value="">Oportunidad CRM…</option>
+                          {options.opportunities.map((opportunity) => (
+                            <option key={opportunity.id} value={opportunity.id}>
+                              {opportunity.name}
                             </option>
                           ))}
                         </select>
