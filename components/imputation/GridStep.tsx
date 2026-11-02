@@ -23,9 +23,16 @@ const FLAGS = [
   { key: "hsNocturna", name: "HS Nocturna" },
 ] as const;
 
-type Props = { options: ImputationOptions; filter: Filter; grid: Grid; onBack: () => void };
+type Props = {
+  options: ImputationOptions;
+  filter: Filter;
+  grid: Grid;
+  onBack: () => void;
+  /** Tras guardar se vuelve al filtro con el mensaje de confirmación. */
+  onSaved: (message: string) => void;
+};
 
-export default function GridStep({ options, filter, grid, onBack }: Props) {
+export default function GridStep({ options, filter, grid, onBack, onSaved }: Props) {
   const [rows, setRows] = useState(grid.rows);
   const [projects, setProjects] = useState(grid.projects);
   // Empleados cuya grilla ya se cargó; se guardan todos juntos
@@ -34,7 +41,7 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
   const [loading, startLoading] = useTransition();
   const [hidden, setHidden] = useState<(number | string)[]>([]);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
-  const [status, setStatus] = useState<{ error?: string; success?: string }>({});
+  const [status, setStatus] = useState<{ error?: string }>({});
   const [pending, startTransition] = useTransition();
   const columns = options.hour_types.filter((type) => !hidden.includes(type.id));
   const flags = FLAGS.filter((flag) => !hidden.includes(flag.key));
@@ -150,11 +157,8 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
     }
     startTransition(async () => {
       const result = await saveImputationAction(toImputationRows(rows, options.hour_types));
-      setStatus(
-        result.ok
-          ? { success: `Imputación guardada: ${result.count} registro(s).` }
-          : { error: result.error },
-      );
+      if (result.ok) onSaved(`Imputación guardada: ${result.count} registro(s).`);
+      else setStatus({ error: result.error });
     });
   }
 
@@ -204,9 +208,6 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
             </select>
           </label>
         )}
-        <button type="button" className="btn btn-primary" onClick={save} disabled={pending || loading}>
-          {pending ? "Guardando…" : "Guardar imputación"}
-        </button>
       </div>
       {loaded.length > 1 && (
         <p className="muted small">
@@ -219,9 +220,6 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
           (BIM → Datos → Costes → Horas extras).
         </p>
       )}
-      {status.error && <p className="alert alert-error">{status.error}</p>}
-      {status.success && <p className="alert alert-success">{status.success}</p>}
-
       <div className="table-wrap">
         <table className="grid-table">
           <thead>
@@ -397,6 +395,12 @@ export default function GridStep({ options, filter, grid, onBack }: Props) {
             );
           })}
         </table>
+      </div>
+      <div className="step-actions">
+        {status.error && <p className="alert alert-error">{status.error}</p>}
+        <button type="button" className="btn btn-primary" onClick={save} disabled={pending || loading}>
+          {pending ? "Guardando…" : "Guardar y volver"}
+        </button>
       </div>
     </section>
   );

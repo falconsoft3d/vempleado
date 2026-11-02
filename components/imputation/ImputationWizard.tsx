@@ -20,10 +20,12 @@ export default function ImputationWizard({ options, defaultFrom, defaultTo }: Pr
   });
   const [grid, setGrid] = useState<Grid | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const employees = selectedEmployees(options, filter);
 
   function next() {
+    setNotice(null);
     const problem = validateFilter(filter, employees);
     setError(problem);
     if (problem) return;
@@ -44,8 +46,18 @@ export default function ImputationWizard({ options, defaultFrom, defaultTo }: Pr
         <li className={grid ? "" : "active"}>1. Filtro</li>
         <li className={grid ? "active" : ""}>2. Grilla de carga</li>
       </ol>
+      {notice && !grid && <p className="alert alert-success">{notice}</p>}
       {grid ? (
-        <GridStep options={options} filter={filter} grid={grid} onBack={() => setGrid(null)} />
+        <GridStep
+          options={options}
+          filter={filter}
+          grid={grid}
+          onBack={() => setGrid(null)}
+          onSaved={(message) => {
+            setGrid(null);
+            setNotice(message);
+          }}
+        />
       ) : (
         <FilterStep
           options={options}
